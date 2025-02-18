@@ -4,6 +4,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <vector>
+#include <optional>
 
 #include "GLFW/glfw3.h"
 
@@ -18,6 +19,16 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
+struct QueueFamilyIndices
+{
+    std::optional<uint32_t> graphicsFamily;
+
+    bool IsComplete()
+	{
+        return graphicsFamily.has_value();
+    }
+};
+
 class HelloTriangleApplication
 {
 public:
@@ -30,21 +41,6 @@ public:
     }
 
 private:
-    void InitWindow()
-    {
-        glfwInit();
-        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
-    	m_pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
-    }
-
-    void InitVulkan()
-	{
-        CreateInstance();
-        SetupDebugMessenger();
-    }
-
     void SetupDebugMessenger()
 	{
         if constexpr (!enableValidationLayers) return;
@@ -83,24 +79,6 @@ private:
             func(instance, debugMessenger, pAllocator);
         }
     }
-
-    void MainLoop()
-	{
-        while(!glfwWindowShouldClose(m_pWindow)) 
-        {
-            glfwPollEvents();
-        }
-    }
-
-    void Cleanup()
-	{
-        CleanupVulkan();
-
-        glfwDestroyWindow(m_pWindow);
-
-        glfwTerminate();
-    }
-
     void CreateInstance()
     {
 #ifndef NDEBUG
@@ -172,6 +150,8 @@ private:
 
     void CleanupVulkan()
     {
+        vkDestroyDevice(m_Device, nullptr);
+
         if (enableValidationLayers) 
         {
             DestroyDebugUtilsMessengerEXT(m_vkInstance, m_vkDebugMessenger, nullptr);
@@ -236,6 +216,73 @@ private:
         return VK_FALSE;
     }
 
+    void PickPhysicalDevice()
+	{
+        uint32_t deviceCount = 0;
+        vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, nullptr);
+
+        if (deviceCount == 0)
+        {
+            throw std::runtime_error("failed to find GPUs with Vulkan support!");
+        }
+
+        std::vector<VkPhysicalDevice> devices(deviceCount);
+        vkEnumeratePhysicalDevices(m_vkInstance, &deviceCount, devices.data());
+
+        for (const auto& device : devices) 
+        {
+            if (IsDeviceSuitable(device)) 
+            {
+                m_vkPhysicalDevice = device;
+                break;
+            }
+        }
+
+        if (m_vkPhysicalDevice == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("failed to find a suitable GPU!");
+        }
+    }
+
+    bool IsDeviceSuitable(VkPhysicalDevice device)
+	{
+        VkPhysicalDeviceProperties deviceProperties;
+        vkGetPhysicalDeviceProperties(device, &deviceProperties);
+
+        VkPhysicalDeviceFeatures deviceFeatures;
+        vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+
+        return true;
+    }
+
+    QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device)
+	{
+        QueueFamilyIndices indices;
+
+        uint32_t queueFamilyCount = 0;
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+
+        std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+        vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+
+        int i = 0;
+        for (const auto& queueFamily : queueFamilies) 
+        {
+            if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) 
+            {
+                indices.graphicsFamily = i;
+            }
+
+            if (indices.IsComplete()) {
+                break;
+            }
+
+            i++;
+        }
+
+        return indices;
+    }
+
     void PopulateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo)
 	{
         createInfo = {};
@@ -245,9 +292,86 @@ private:
         createInfo.pfnUserCallback = DebugCallback;
     }
 
+    void CreateLogicalDevice()
+	{
+        QueueFamilyIndices indices = FindQueueFamilies(m_vkPhysicalDevice);
+
+        VkDeviceQueueCreateInfo queueCreateInfo{};
+        queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queueCreateInfo.queueFamilyIndex = indices.graphicsFamily.value();
+        queueCreateInfo.queueCount = 1;
+
+        float queuePriority = 1.0f;
+        queueCreateInfo.pQueuePriorities = &queuePriority;
+
+        VkPhysicalDeviceFeatures deviceFeatures{ VK_FALSE };
+        VkDeviceCreateInfo createInfo{};
+
+        createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+        createInfo.pQueueCreateInfos = &queueCreateInfo;
+        createInfo.queueCreateInfoCount = 1;
+        createInfo.pEnabledFeatures = &deviceFeatures;
+        createInfo.enabledExtensionCount = 0;
+
+        if (enableValidationLayers) 
+        {
+            createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
+            createInfo.ppEnabledLayerNames = validationLayers.data();
+        }
+        else 
+        {
+            createInfo.enabledLayerCount = 0;
+        }
+
+        if (vkCreateDevice(m_vkPhysicalDevice, &createInfo, nullptr, &m_Device) != VK_SUCCESS) 
+        {
+            throw std::runtime_error("failed to create logical device!");
+        }
+
+        vkGetDeviceQueue(m_Device, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
+    }
+
+    void InitWindow()
+    {
+        glfwInit();
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+        glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+
+    	m_pWindow = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+    }
+
+    void InitVulkan()
+	{
+        CreateInstance();
+        SetupDebugMessenger();
+        PickPhysicalDevice();
+        CreateLogicalDevice();
+    }
+
+    void MainLoop()
+	{
+        while(!glfwWindowShouldClose(m_pWindow)) 
+        {
+            glfwPollEvents();
+        }
+    }
+
+    void Cleanup()
+	{
+        CleanupVulkan();
+
+        glfwDestroyWindow(m_pWindow);
+
+        glfwTerminate();
+    }
+
+
     GLFWwindow* m_pWindow;
     VkInstance m_vkInstance;
     VkDebugUtilsMessengerEXT m_vkDebugMessenger;
+    VkPhysicalDevice m_vkPhysicalDevice{ VK_NULL_HANDLE };
+    VkDevice m_Device;
+    VkQueue m_GraphicsQueue;
 };
 
 int main(int argc, char* argv[])
