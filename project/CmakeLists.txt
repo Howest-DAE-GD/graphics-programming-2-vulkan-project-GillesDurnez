@@ -27,3 +27,9 @@ set( SRC_FILES
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Vulkan glfw glm::glm)
+
+# Copying over the assets
+add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
+            ${CMAKE_CURRENT_SOURCE_DIR}/shaders/
+            $<TARGET_FILE_DIR:${TARGET_NAME}>/shaders)
