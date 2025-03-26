@@ -543,6 +543,7 @@ private:
         createInfo.pQueueCreateInfos = queueCreateInfos.data();
         createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
         createInfo.ppEnabledExtensionNames = deviceExtensions.data();
+        createInfo.pEnabledFeatures = &deviceFeatures;
 
         if (enableValidationLayers) 
         {
@@ -1578,6 +1579,21 @@ private:
         {
             throw std::invalid_argument("unsupported layout transition!");
         }
+
+        if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL) 
+        {
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+            if (HasStencilComponent(format)) 
+            {
+                barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            }
+        }
+        else 
+        {
+            barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+
 
         vkCmdPipelineBarrier(
             commandBuffer,
