@@ -121,6 +121,11 @@ gp2::Device::QueueFamilyIndices gp2::Device::FindQueueFamilies(VkPhysicalDevice 
     return indices;
 }
 
+gp2::Device::QueueFamilyIndices gp2::Device::FindQueueFamilies() const
+{
+    return FindQueueFamilies(m_PhysicalDevice);
+}
+
 VkFormat gp2::Device::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
 {
     for (VkFormat format : candidates)

@@ -2,18 +2,18 @@
 
 #include <stdexcept>
 
-gp2::Commandpool::Commandpool(Device* pDevice)
+gp2::CommandPool::CommandPool(Device* pDevice)
 	: m_pDevice(pDevice)
 {
 	CreateCommandPool();
 }
 
-gp2::Commandpool::~Commandpool()
+gp2::CommandPool::~CommandPool()
 {
 	vkDestroyCommandPool(m_pDevice->GetLogicalDevice(), m_CommandPool, nullptr);
 }
 
-VkCommandBuffer gp2::Commandpool::BeginSingleTimeCommands() const
+VkCommandBuffer gp2::CommandPool::BeginSingleTimeCommands() const
 {
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -33,7 +33,7 @@ VkCommandBuffer gp2::Commandpool::BeginSingleTimeCommands() const
 	return commandBuffer;
 }
 
-void gp2::Commandpool::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
+void gp2::CommandPool::EndSingleTimeCommands(VkCommandBuffer commandBuffer) const
 {
 	vkEndCommandBuffer(commandBuffer);
 
@@ -48,9 +48,9 @@ void gp2::Commandpool::EndSingleTimeCommands(VkCommandBuffer commandBuffer) cons
 	vkFreeCommandBuffers(m_pDevice->GetLogicalDevice(), m_CommandPool, 1, &commandBuffer);
 }
 
-void gp2::Commandpool::CreateCommandPool()
+void gp2::CommandPool::CreateCommandPool()
 {
-	Device::QueueFamilyIndices queueFamilyIndices = m_pDevice->FindQueueFamilies();
+	Device::QueueFamilyIndices queueFamilyIndices = m_pDevice->FindQueueFamilies(m_pDevice->GetPhysicalDevice());
 
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;

@@ -4,14 +4,16 @@
 
 namespace gp2
 {
-	class Commandpool
+	class CommandPool
 	{
 	public:
-		Commandpool(Device* pDevice);
-		~Commandpool();
+		CommandPool(Device* pDevice);
+		~CommandPool();
 
 		VkCommandBuffer BeginSingleTimeCommands() const;
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
+
+		VkCommandPool GetCommandPool() const { return m_CommandPool; }
 
 	private:
 		Device* m_pDevice;

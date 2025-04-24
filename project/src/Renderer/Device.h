@@ -49,6 +49,8 @@ namespace gp2
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device) const;
 		bool IsDeviceSuitable(VkPhysicalDevice device) const;
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
+		QueueFamilyIndices FindQueueFamilies() const;
+
 
 	private:
 		void PickPhysicalDevice();

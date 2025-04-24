@@ -31,21 +31,21 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(VMA)
 
 set( SRC_FILES
-     "src/main.cpp"
-     "src/Renderer/vkRenderer.cpp"
-     "src/Renderer/Window.cpp" 
-     "src/Renderer/Device.cpp" 
-     "src/Renderer/Instance.cpp" 
-     "src/Renderer/SwapChain.cpp" 
-     "src/Renderer/Renderpass.cpp"
-     "src/Renderer/Resources/Model.cpp"
-     "src/Renderer/Pipeline.cpp" 
+    "src/main.cpp"
+    "src/Renderer/vkRenderer.cpp"
+    "src/Renderer/Window.cpp" 
+    "src/Renderer/Device.cpp" 
+    "src/Renderer/Instance.cpp" 
+    "src/Renderer/SwapChain.cpp" 
+    "src/Renderer/Renderpass.cpp"
+    "src/Renderer/Resources/Model.cpp"
+    "src/Renderer/Pipeline.cpp" 
 #     "src/Renderer/Resources/Image.cpp" 
 #     "src/Renderer/Buffer.cpp" 
 #     "src/Renderer/Resources/Texture.cpp" 
-#     "src/Renderer/Descriptor.cpp" 
-#     "src/Renderer/CommandPool.cpp"
-  "src/Renderer/Resources/Shader.cpp")
+#    "src/Renderer/Descriptor.cpp" 
+    "src/Renderer/CommandPool.cpp"
+    "src/Renderer/Resources/Shader.cpp")
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 
