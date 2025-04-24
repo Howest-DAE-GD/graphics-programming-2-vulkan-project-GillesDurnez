@@ -5,7 +5,6 @@
 #include "Resources/Image.h"
 
 #define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/hash.hpp>
@@ -17,13 +16,14 @@ namespace gp2
 	class SwapChain
 	{
 	public:
-		SwapChain(Window* window, Device* device);
+		SwapChain(Window* window, Device* device, CommandPool* pCommandPool);
 		~SwapChain();
 
 		VkSwapchainKHR GetSwapChain() const { return m_SwapChain; }
 		VkExtent2D GetSwapChainExtent() const { return m_SwapChainExtent; }
 		VkFormat GetImageFormat() const { return m_SwapChainImageFormat; }
 		std::vector<VkImageView> GetImageViews() const { return m_SwapChainImageViews; }
+		Image* GetDepthImage() const { return m_pDepthImage; }
 
 		void RecreateSwapChain();
 		
@@ -41,7 +41,7 @@ namespace gp2
 		void CreateImageViews();
 		void CreateDepthResources();
 
-		void CleanupSwapChain() const;
+		void CleanupSwapChain();
 
 		static VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
@@ -54,12 +54,15 @@ namespace gp2
 
 		Window* m_pWindow{};
 		Device* m_pDevice{};
+		CommandPool* m_pCommandPool{};
 
 		VkSwapchainKHR				m_SwapChain{};
 		std::vector<VkImage>		m_SwapChainImages;
 		VkFormat					m_SwapChainImageFormat{};
 		VkExtent2D					m_SwapChainExtent{};
 		std::vector<VkImageView>	m_SwapChainImageViews{};
+
+		Image* m_pDepthImage{};
 
 	};
 }

@@ -3,6 +3,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Instance.h"
+#include "vk_mem_alloc.h"
 #include "Window.h"
 
 namespace gp2
@@ -45,6 +46,8 @@ namespace gp2
 		VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
 		VkQueue GetPresentQueue() const { return m_PresentQueue; }
 
+		VmaAllocator GetAllocator() const { return m_Allocator; }
+
 		static bool HasStencilComponent(VkFormat format);
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device) const;
 		bool IsDeviceSuitable(VkPhysicalDevice device) const;
@@ -55,6 +58,7 @@ namespace gp2
 	private:
 		void PickPhysicalDevice();
 		void CreateLogicalDevice();
+		void SetupVMA();
 
 
 		Instance m_Instance;
@@ -66,6 +70,8 @@ namespace gp2
 
 		VkQueue m_GraphicsQueue{};
 		VkQueue m_PresentQueue{};
+
+		VmaAllocator m_Allocator{};
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };

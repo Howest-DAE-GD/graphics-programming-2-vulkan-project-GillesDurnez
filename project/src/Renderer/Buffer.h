@@ -1,4 +1,5 @@
 #pragma once
+#include "CommandPool.h"
 #include "Device.h"
 
 namespace gp2
@@ -7,8 +8,7 @@ namespace gp2
 	{
 	public:
 
-		Buffer(Device* pDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties);
-		Buffer(Device* pDevice, VkBufferCreateInfo bufferInfo, VkMemoryPropertyFlags properties);
+		Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCreateInfo& bufferInfo, VkMemoryPropertyFlags properties);
 		~Buffer();
 
 		Buffer(Buffer&) = delete;
@@ -17,15 +17,15 @@ namespace gp2
 		Buffer& operator=(Buffer&&) = default;
 
 		VkBuffer GetBuffer() const { return m_Buffer; }
-		VkDeviceMemory GetBufferMemory() const { return m_BufferMemory; }
 
 		void CopyBuffer(VkBuffer srcBuffer, VkDeviceSize size) const;
 
 
 	private:
 		Device* m_pDevice;
+		CommandPool* m_pCommandPool;
 
 		VkBuffer m_Buffer{};
-		VkDeviceMemory m_BufferMemory{};
+		VmaAllocation m_BufferAllocation{};
 	};
 }

@@ -27,8 +27,9 @@
 #include <tiny_obj_loader.h>
 #include <unordered_map>
 
-#define VMA_IMPLEMENTATION
-#include "vk_mem_alloc.h"
+//#define VMA_IMPLEMENTATION
+//#include "vk_mem_alloc.h"
+
 #include "Renderer/CommandPool.h"
 
 #include "Renderer/Window.h"
@@ -130,13 +131,7 @@ private:
         vkDestroyBuffer(m_Device.GetLogicalDevice(), m_IndexBuffer, nullptr);
         vkFreeMemory(m_Device.GetLogicalDevice(), m_IndexBufferMemory, nullptr);
 
-        vkDestroyBuffer(m_Device.GetLogicalDevice(), m_VertexBuffer, nullptr);
-        vkFreeMemory(m_Device.GetLogicalDevice(), m_VertexBufferMemory, nullptr);
-
-        //vkDestroyPipeline(m_Device.GetLogicalDevice(), m_GraphicsPipeline, nullptr);
-        //vkDestroyPipelineLayout(m_Device.GetLogicalDevice(), m_PipelineLayout, nullptr);
-
-        //vkDestroyRenderPass(m_Device.GetLogicalDevice(), m_RenderPass.GetRenderPass(), nullptr);
+        vkDestroyBuffer(m_Device.GetLogicalDevice(), m_VertexBuffer, nullptr);        //vkDestroyRenderPass(m_Device.GetLogicalDevice(), m_RenderPass.GetRenderPass(), nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
@@ -144,6 +139,12 @@ private:
             vkDestroySemaphore(m_Device.GetLogicalDevice(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroyFence(m_Device.GetLogicalDevice(), m_InFlightFences[i], nullptr);
         }
+        vkFreeMemory(m_Device.GetLogicalDevice(), m_VertexBufferMemory, nullptr);
+
+        //vkDestroyPipeline(m_Device.GetLogicalDevice(), m_GraphicsPipeline, nullptr);
+        //vkDestroyPipelineLayout(m_Device.GetLogicalDevice(), m_PipelineLayout, nullptr);
+
+
 
         //vkDestroyCommandPool(m_Device.GetLogicalDevice(), m_CommandPool, nullptr);
     }
@@ -208,7 +209,7 @@ private:
 
         for (size_t i = 0; i < m_SwapChain.GetImageViews().size(); i++)
         {
-            std::array<VkImageView, 2> attachments = { m_SwapChain.GetImageViews()[i], m_DepthImageView };
+            std::array<VkImageView, 2> attachments = { m_SwapChain.GetImageViews()[i], m_SwapChain.GetDepthImage()->GetImageView() };
 
             VkFramebufferCreateInfo framebufferInfo{};
             framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
@@ -430,9 +431,9 @@ private:
 
     void CleanupSwapChain()
 	{
-        vkDestroyImageView(m_Device.GetLogicalDevice(), m_DepthImageView, nullptr);
-        vkDestroyImage(m_Device.GetLogicalDevice(),m_DepthImage, nullptr);
-        vkFreeMemory(m_Device.GetLogicalDevice(), m_DepthImageMemory, nullptr);
+        //vkDestroyImageView(m_Device.GetLogicalDevice(), m_DepthImageView, nullptr);
+        //vkDestroyImage(m_Device.GetLogicalDevice(),m_DepthImage, nullptr);
+        //vkFreeMemory(m_Device.GetLogicalDevice(), m_DepthImageMemory, nullptr);
 
         for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) 
         {
@@ -451,7 +452,7 @@ private:
 	{
         m_SwapChain.RecreateSwapChain();
 
-        CreateDepthResources();
+        //CreateDepthResources();
         CreateFramebuffers();
     }
 
@@ -912,15 +913,15 @@ private:
         );
     }
 
-    void CreateDepthResources()
-	{
-        VkFormat depthFormat = FindDepthFormat();
+ //   void CreateDepthResources()
+	//{
+ //       VkFormat depthFormat = FindDepthFormat();
 
-        CreateImage(m_SwapChain.GetSwapChainExtent().width, m_SwapChain.GetSwapChainExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
-        m_DepthImageView = CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+ //       CreateImage(m_SwapChain.GetSwapChainExtent().width, m_SwapChain.GetSwapChainExtent().height, depthFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_DepthImage, m_DepthImageMemory);
+ //       m_DepthImageView = CreateImageView(m_DepthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    }
+ //       TransitionImageLayout(m_DepthImage, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+ //   }
 
     void LoadModel()
 	{
@@ -969,9 +970,7 @@ private:
 
     void InitVulkan()
 	{
-        // Device
-        //CreateCommandPool();
-        CreateDepthResources();
+        //CreateDepthResources();
         CreateFramebuffers();
 
         // Texture
@@ -1014,11 +1013,12 @@ private:
     gp2::Window m_Window{};
 
     gp2::Device m_Device{&m_Window};
-    gp2::SwapChain m_SwapChain{ &m_Window, &m_Device };
+    gp2::CommandPool m_CommandPool{ &m_Device };
+
+    gp2::SwapChain m_SwapChain{ &m_Window, &m_Device, &m_CommandPool };
 
 	gp2::RenderPass m_RenderPass{ &m_Device, &m_SwapChain };
 	gp2::Pipeline m_Pipeline{ &m_Device, &m_SwapChain ,&m_RenderPass, "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
-    gp2::CommandPool m_CommandPool{ &m_Device };
 
 
 
@@ -1037,27 +1037,27 @@ private:
     std::vector<gp2::Vertex> m_Vertices;
     std::vector<uint32_t> m_Indices;
 
-    VkBuffer m_VertexBuffer;
-    VkDeviceMemory m_VertexBufferMemory;
-    VkBuffer m_IndexBuffer;
-    VkDeviceMemory m_IndexBufferMemory;
+    VkBuffer m_VertexBuffer{};
+    VkDeviceMemory m_VertexBufferMemory{};
+    VkBuffer m_IndexBuffer{};
+    VkDeviceMemory m_IndexBufferMemory{};
 
 
     std::vector<VkBuffer> m_UniformBuffers;
     std::vector<VkDeviceMemory> m_UniformBuffersMemory;
     std::vector<void*> m_UniformBuffersMapped;
 
-    VkDescriptorPool m_DescriptorPool;
+    VkDescriptorPool m_DescriptorPool{};
     std::vector<VkDescriptorSet> m_DescriptorSets;
 
-    VkImage m_TextureImage;
-    VkDeviceMemory m_TextureImageMemory;
-    VkImageView m_TextureImageView;
-    VkSampler m_TextureSampler;
+    VkImage m_TextureImage{};
+    VkDeviceMemory m_TextureImageMemory{};
+    VkImageView m_TextureImageView{};
+    VkSampler m_TextureSampler{};
 
-    VkImage m_DepthImage;
-    VkDeviceMemory m_DepthImageMemory;
-    VkImageView m_DepthImageView;
+    //VkImage m_DepthImage;
+    //VkDeviceMemory m_DepthImageMemory;
+    //VkImageView m_DepthImageView;
 };
 
 int main(int argc, char* argv[])

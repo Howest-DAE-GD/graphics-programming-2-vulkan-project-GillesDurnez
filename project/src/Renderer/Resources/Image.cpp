@@ -2,9 +2,14 @@
 
 #include <stdexcept>
 
-gp2::Image::Image(const Device* pDevice, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
-                  VkImageUsageFlags usage, VkMemoryPropertyFlags properties)
-	: m_pDevice(pDevice)
+//#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
+#include "../CommandPool.h"
+
+gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
+                  VkImageUsageFlags usage, VkImageAspectFlags aspectFlags, VkMemoryPropertyFlags properties)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
 	ImageCreateInfo imageCreateInfo{};
 	imageCreateInfo.width = width;
@@ -12,39 +17,30 @@ gp2::Image::Image(const Device* pDevice, uint32_t width, uint32_t height, VkForm
 	imageCreateInfo.format = format;
 	imageCreateInfo.tiling = tiling;
 	imageCreateInfo.usage = usage;
+	imageCreateInfo.aspectFlags = aspectFlags;
 	imageCreateInfo.properties = properties;
 
 	CreateImage(imageCreateInfo);
 }
 
-gp2::Image::Image(const Device* pDevice, const ImageCreateInfo& imageCreate)
-	: m_pDevice(pDevice)
+gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const ImageCreateInfo& imageCreate)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
 	CreateImage(imageCreate);
-	CreateImageView(imageCreate.format, VK_IMAGE_ASPECT_COLOR_BIT);
+	CreateImageView(imageCreate.format, imageCreate.aspectFlags);
 }
 
 gp2::Image::~Image()
 {
-	if (m_ImageView != VK_NULL_HANDLE) 
-    {
-		vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
-	}
-	if (m_Image != VK_NULL_HANDLE) 
-    {
-		vkDestroyImage(m_pDevice->GetLogicalDevice(), m_Image, nullptr);
-	}
-	if (m_ImageMemory != VK_NULL_HANDLE) 
-    {
-		vkFreeMemory(m_pDevice->GetLogicalDevice(), m_ImageMemory, nullptr);
-	}
+	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
+    vmaFreeMemory(m_pDevice->GetAllocator(), m_ImageAllocation);
+    vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, nullptr);
 }
 
 
-void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const
 {
-    VkCommandBuffer commandBuffer = m_pDevice->BeginSingleTimeCommands();
-
+    VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -95,7 +91,7 @@ void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout,
     {
         barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
 
-        if ((format))
+        if (m_pDevice->HasStencilComponent(format))
         {
             barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
@@ -115,12 +111,12 @@ void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout,
         1, &barrier
     );
 
-    m_pDevice->EndSingleTimeCommands(commandBuffer);
+    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
 }
 
 void gp2::Image::CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height) const
 {
-    VkCommandBuffer commandBuffer = m_pDevice->BeginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
 
     VkBufferImageCopy region{};
     region.bufferOffset = 0;
@@ -139,7 +135,7 @@ void gp2::Image::CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t hei
         1
     };
 
-    vkCmdCopyBufferToImage(
+        vkCmdCopyBufferToImage(
         commandBuffer,
         buffer,
         m_Image,
@@ -148,11 +144,12 @@ void gp2::Image::CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t hei
         &region
     );
 
-    m_pDevice->EndSingleTimeCommands(commandBuffer);
+    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
 }
 
 void gp2::Image::CreateImage(const ImageCreateInfo& imageCreateInfo)
 {
+
     VkImageCreateInfo imageInfo{};
     imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
     imageInfo.imageType = VK_IMAGE_TYPE_2D;
@@ -168,23 +165,11 @@ void gp2::Image::CreateImage(const ImageCreateInfo& imageCreateInfo)
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    if (vkCreateImage(m_pDevice->GetLogicalDevice(), &imageInfo, nullptr, &m_Image) != VK_SUCCESS) {
-        throw std::runtime_error("failed to create image!");
-    }
+	VmaAllocationCreateInfo allocInfo{};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.requiredFlags = imageCreateInfo.properties;
 
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements(m_pDevice->GetLogicalDevice(), m_Image, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, imageCreateInfo.properties);
-
-    if (vkAllocateMemory(m_pDevice->GetLogicalDevice(), &allocInfo, nullptr, &m_ImageMemory) != VK_SUCCESS) {
-        throw std::runtime_error("failed to allocate image memory!");
-    }
-
-    vkBindImageMemory(m_pDevice->GetLogicalDevice(), m_Image, m_ImageMemory, 0);
+    vmaCreateImage(m_pDevice->GetAllocator(), &imageInfo, &allocInfo, &m_Image, &m_ImageAllocation, nullptr);
 }
 
 void gp2::Image::CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags)

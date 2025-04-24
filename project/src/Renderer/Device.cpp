@@ -3,15 +3,20 @@
 #include <set>
 #include <stdexcept>
 
+#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
 gp2::Device::Device(const Window* window)
 {
     window->CreateVkSurface(m_Instance, &m_Surface);
 	PickPhysicalDevice();
 	CreateLogicalDevice();
+    SetupVMA();
 }
 
 gp2::Device::~Device()
 {
+	vmaDestroyAllocator(m_Allocator);
     vkDestroyDevice(m_LogicalDevice, nullptr);
     vkDestroySurfaceKHR(m_Instance.GetInstance(), m_Surface, nullptr);
 }
@@ -239,4 +244,17 @@ void gp2::Device::CreateLogicalDevice()
 
     vkGetDeviceQueue(m_LogicalDevice, indices.graphicsFamily.value(), 0, &m_GraphicsQueue);
     vkGetDeviceQueue(m_LogicalDevice, indices.presentFamily.value(), 0, &m_PresentQueue);
+}
+
+void gp2::Device::SetupVMA()
+{
+	VmaAllocatorCreateInfo allocatorInfo{};
+	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_0;
+	allocatorInfo.physicalDevice = m_PhysicalDevice;
+	allocatorInfo.device = m_LogicalDevice;
+	allocatorInfo.instance = m_Instance.GetInstance();
+	if (vmaCreateAllocator(&allocatorInfo, &m_Allocator) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create VMA allocator!");
+	}
 }

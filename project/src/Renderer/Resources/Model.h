@@ -5,7 +5,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-
+#define GLM_FORCE_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
 //#define TINYOBJLOADER_IMPLEMENTATION

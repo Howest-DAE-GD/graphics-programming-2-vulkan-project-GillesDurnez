@@ -6,11 +6,12 @@
 
 #include "Buffer.h"
 
-gp2::SwapChain::SwapChain(Window* window, Device* device)
-    : m_pWindow(window), m_pDevice(device)
+gp2::SwapChain::SwapChain(Window* window, Device* device, CommandPool* pCommandPool)
+	: m_pWindow(window), m_pDevice(device), m_pCommandPool(pCommandPool)
 {
     CreateSwapChain();
 	CreateImageViews();
+    CreateDepthResources();
 }
 
 gp2::SwapChain::~SwapChain()
@@ -210,16 +211,25 @@ void gp2::SwapChain::CreateDepthResources()
 	depthImageCreateInfo.format = depthFormat;
 	depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
 	depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	depthImageCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthImageCreateInfo.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 
+    if (m_pDepthImage != nullptr) 
+    {
+        delete m_pDepthImage;
+		m_pDepthImage = nullptr;
+    }
 
-	//m_DepthImage = new Image{ m_pDevice, depthImageCreateInfo };
+	m_pDepthImage = new Image{ m_pDevice, m_pCommandPool, depthImageCreateInfo };
 
- //   TransitionImageLayout(*m_DepthImage->GetImage(), depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    m_pDepthImage->TransitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
 }
 
-void gp2::SwapChain::CleanupSwapChain() const
+void gp2::SwapChain::CleanupSwapChain()
 {
+    delete m_pDepthImage;
+    m_pDepthImage = nullptr;
+
     /*for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
     {
         vkDestroyFramebuffer(m_pDevice->GetLogicalDevice(), m_SwapChainFramebuffers[i], nullptr);
@@ -252,4 +262,5 @@ void gp2::SwapChain::RecreateSwapChain()
 
     CreateSwapChain();
     CreateImageViews();
+    CreateDepthResources();
 }

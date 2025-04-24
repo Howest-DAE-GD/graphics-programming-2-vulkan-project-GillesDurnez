@@ -5,6 +5,8 @@
 
 namespace gp2
 {
+	class CommandPool;
+
 	class Image
 	{
 	public:
@@ -15,17 +17,19 @@ namespace gp2
 			VkFormat format;
 			VkImageTiling tiling;
 			VkImageUsageFlags usage;
+			VkImageAspectFlags aspectFlags;
 			VkMemoryPropertyFlags properties;
 		};
 
-		Image(const Device* pDevice, 
+		Image(const Device* pDevice, const CommandPool* pCommandPool,
 			uint32_t width, 
 			uint32_t height, 
 			VkFormat format, 
 			VkImageTiling tiling, 
-			VkImageUsageFlags usage, 
+			VkImageUsageFlags usage,
+			VkImageAspectFlags aspectFlags,
 			VkMemoryPropertyFlags properties);
-		Image(const Device* pDevice, const ImageCreateInfo& imageCreate);
+		Image(const Device* pDevice, const CommandPool* pCommandPool, const ImageCreateInfo& imageCreate);
 		~Image();
 
 		Image(const Image&) = delete;
@@ -33,11 +37,10 @@ namespace gp2
 		Image& operator=(const Image&) = delete;
 		Image& operator=(Image&&) = default;
 
-		VkDeviceMemory* GetImageMemory() { return &m_ImageMemory; }
-		VkImage* GetImage() { return &m_Image; }
-		VkImageView* GetImageView() { return &m_ImageView; }
+		VkImage GetImage() const { return m_Image; }
+		VkImageView GetImageView() const { return m_ImageView; }
 
-		void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+		void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 		void CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height) const;
 		void CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags);
 
@@ -47,9 +50,10 @@ namespace gp2
 
 	protected:
 		const Device* m_pDevice;
+		const CommandPool* m_pCommandPool;
 
 		VkImage m_Image;
-		VkDeviceMemory m_ImageMemory;
+		VmaAllocation m_ImageAllocation;
 		VkImageView m_ImageView;
 	};
 }

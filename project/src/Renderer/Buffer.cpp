@@ -2,78 +2,32 @@
 
 #include <stdexcept>
 
-gp2::Buffer::Buffer(Device* pDevice, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties)
-	: m_pDevice(pDevice)
+//#define VMA_IMPLEMENTATION
+#include "vk_mem_alloc.h"
+
+gp2::Buffer::Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCreateInfo& bufferInfo, const VkMemoryPropertyFlags properties)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VmaAllocationCreateInfo allocInfo{};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.requiredFlags = properties;
 
-    if (vkCreateBuffer(m_pDevice->GetLogicalDevice(), &bufferInfo, nullptr, &m_Buffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_pDevice->GetLogicalDevice(), m_Buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(m_pDevice->GetLogicalDevice(), &allocInfo, nullptr, &m_BufferMemory) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(m_pDevice->GetLogicalDevice(), m_Buffer, m_BufferMemory, 0);
-}
-
-gp2::Buffer::Buffer(Device* pDevice, VkBufferCreateInfo bufferInfo, VkMemoryPropertyFlags properties)
-{
-    if (vkCreateBuffer(m_pDevice->GetLogicalDevice(), &bufferInfo, nullptr, &m_Buffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_pDevice->GetLogicalDevice(), m_Buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = m_pDevice->FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(m_pDevice->GetLogicalDevice(), &allocInfo, nullptr, &m_BufferMemory) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(m_pDevice->GetLogicalDevice(), m_Buffer, m_BufferMemory, 0);
+	vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_Buffer, &m_BufferAllocation, nullptr);
 }
 
 gp2::Buffer::~Buffer()
 {
-	if (m_Buffer != VK_NULL_HANDLE)
-	{
-		vkDestroyBuffer(m_pDevice->GetLogicalDevice(), m_Buffer, nullptr);
-	}
-	if (m_BufferMemory != VK_NULL_HANDLE)
-	{
-		vkFreeMemory(m_pDevice->GetLogicalDevice(), m_BufferMemory, nullptr);
-	}
+	vmaFreeMemory(m_pDevice->GetAllocator(), m_BufferAllocation);
+	vmaDestroyBuffer(m_pDevice->GetAllocator(), m_Buffer, m_BufferAllocation);
 }
 
 void gp2::Buffer::CopyBuffer(VkBuffer srcBuffer, VkDeviceSize size) const
 {
-    VkCommandBuffer commandBuffer = m_pDevice->BeginSingleTimeCommands();
+    VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
 
     VkBufferCopy copyRegion{};
     copyRegion.size = size;
     vkCmdCopyBuffer(commandBuffer, srcBuffer, m_Buffer, 1, &copyRegion);
 
-    m_pDevice->EndSingleTimeCommands(commandBuffer);
+    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
 }
