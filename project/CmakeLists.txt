@@ -22,11 +22,36 @@ FetchContent_MakeAvailable(GLM)
 # NOTE: You need the have the vulkan sdk installed yourself to be able to find this package this way.
 find_package(Vulkan REQUIRED)
 
+# VMA
+FetchContent_Declare(
+    VMA
+    GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+    GIT_TAG master  # or a specific tag/commit
+)
+FetchContent_MakeAvailable(VMA)
+
 set( SRC_FILES
-     "src/main.cpp")
+     "src/main.cpp"
+     "src/Renderer/vkRenderer.cpp"
+     "src/Renderer/Window.cpp" 
+     "src/Renderer/Device.cpp" 
+     "src/Renderer/Instance.cpp" 
+     "src/Renderer/SwapChain.cpp" 
+     "src/Renderer/Renderpass.cpp"
+     "src/Renderer/Resources/Model.cpp"
+     "src/Renderer/Pipeline.cpp" 
+#     "src/Renderer/Resources/Image.cpp" 
+#     "src/Renderer/Buffer.cpp" 
+#     "src/Renderer/Resources/Texture.cpp" 
+#     "src/Renderer/Descriptor.cpp" 
+#     "src/Renderer/CommandPool.cpp"
+  "src/Renderer/Resources/Shader.cpp")
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
+
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(${TARGET_NAME} PUBLIC ${vma_SOURCE_DIR}/include)
+
 target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Vulkan glfw glm::glm)
 # Copying over the assets
 # add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
