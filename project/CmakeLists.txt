@@ -40,9 +40,9 @@ set( SRC_FILES
     "src/Renderer/Renderpass.cpp"
     "src/Renderer/Resources/Model.cpp"
     "src/Renderer/Pipeline.cpp" 
-     "src/Renderer/Resources/Image.cpp" 
-     "src/Renderer/Buffer.cpp" 
-#     "src/Renderer/Resources/Texture.cpp" 
+    "src/Renderer/Resources/Image.cpp" 
+    "src/Renderer/Buffer.cpp" 
+    "src/Renderer/Resources/Texture.cpp" 
 #    "src/Renderer/Descriptor.cpp" 
     "src/Renderer/CommandPool.cpp"
     "src/Renderer/Resources/Shader.cpp")

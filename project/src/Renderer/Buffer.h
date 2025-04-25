@@ -8,7 +8,7 @@ namespace gp2
 	{
 	public:
 
-		Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCreateInfo& bufferInfo, VkMemoryPropertyFlags properties);
+		Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCreateInfo& bufferInfo, VkMemoryPropertyFlags properties, bool hostAcces = false);
 		~Buffer();
 
 		Buffer(Buffer&) = delete;
@@ -17,6 +17,7 @@ namespace gp2
 		Buffer& operator=(Buffer&&) = default;
 
 		VkBuffer GetBuffer() const { return m_Buffer; }
+		VmaAllocation GetBufferAllocation() const { return m_BufferAllocation; }
 
 		void CopyBuffer(VkBuffer srcBuffer, VkDeviceSize size) const;
 

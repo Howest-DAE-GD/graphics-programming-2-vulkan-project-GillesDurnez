@@ -39,6 +39,7 @@ namespace gp2
 
 		VkImage GetImage() const { return m_Image; }
 		VkImageView GetImageView() const { return m_ImageView; }
+		VmaAllocation GetImageAllocation() const { return m_ImageAllocation; }
 
 		void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
 		void CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height) const;

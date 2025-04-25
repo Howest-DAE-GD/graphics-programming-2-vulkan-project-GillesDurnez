@@ -21,6 +21,7 @@ gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, uint32
 	imageCreateInfo.properties = properties;
 
 	CreateImage(imageCreateInfo);
+    CreateImageView(imageCreateInfo.format, imageCreateInfo.aspectFlags);
 }
 
 gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const ImageCreateInfo& imageCreate)
@@ -33,7 +34,6 @@ gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const 
 gp2::Image::~Image()
 {
 	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
-    vmaFreeMemory(m_pDevice->GetAllocator(), m_ImageAllocation);
     vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, nullptr);
 }
 

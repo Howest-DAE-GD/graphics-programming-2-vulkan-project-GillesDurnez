@@ -5,19 +5,23 @@
 //#define VMA_IMPLEMENTATION
 #include "vk_mem_alloc.h"
 
-gp2::Buffer::Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCreateInfo& bufferInfo, const VkMemoryPropertyFlags properties)
+gp2::Buffer::Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCreateInfo& bufferInfo, const VkMemoryPropertyFlags properties, bool hostAcces)
 	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
 	VmaAllocationCreateInfo allocInfo{};
 	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
 	allocInfo.requiredFlags = properties;
 
+	if (hostAcces)
+	{
+		allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+	}
+
 	vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_Buffer, &m_BufferAllocation, nullptr);
 }
 
 gp2::Buffer::~Buffer()
 {
-	vmaFreeMemory(m_pDevice->GetAllocator(), m_BufferAllocation);
 	vmaDestroyBuffer(m_pDevice->GetAllocator(), m_Buffer, m_BufferAllocation);
 }
 

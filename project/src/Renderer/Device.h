@@ -38,6 +38,8 @@ namespace gp2
 		SwapChainSupportDetails QuerySwapChainSupport(VkPhysicalDevice device) const;
 		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 		uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
+		VkFormat FindDepthFormat() const;
+
 
 		VkDevice GetLogicalDevice() const { return m_LogicalDevice; }
 		VkPhysicalDevice GetPhysicalDevice() const { return m_PhysicalDevice; }

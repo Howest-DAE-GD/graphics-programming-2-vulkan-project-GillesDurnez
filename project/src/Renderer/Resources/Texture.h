@@ -2,7 +2,7 @@
 #include <vulkan/vulkan.h>
 
 #include "Image.h"
-#include "../Device/Device.h"
+#include "../Device.h"
 #include "../Buffer.h"
 #include "../SwapChain.h"
 
@@ -12,21 +12,16 @@ namespace gp2
 	class Texture
 	{
 	public:
-		Texture(Device* pDevice, SwapChain* pSwapChain, std::string path);
+		Texture(Device* pDevice, CommandPool* pCommandPool, std::string path);
 		~Texture();
 
-		VkSampler GetSampler() const { return m_TextureSampler; }
+		Image* GetTextureImage() const { return m_TextureImage; }
 
-		VkImage GetImage() const { return *m_TextureImage->GetImage(); }
-		VkImageView GetImageView() const { return *m_TextureImage->GetImageView(); }
-		VkDeviceMemory GetImageMemory() const { return *m_TextureImage->GetImageMemory(); }
-
-		void CreateTextureSampler();
 
 	private:
 		Device* m_pDevice;
+		CommandPool* m_pCommandPool;
 
-		Image* m_TextureImage;
-		VkSampler m_TextureSampler;
+		Image* m_TextureImage{ nullptr };
 	};
 }
