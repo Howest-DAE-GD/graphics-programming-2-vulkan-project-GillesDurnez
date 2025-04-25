@@ -100,15 +100,3 @@ namespace gp2
 	};
 }
 
-//namespace std
-//{
-//    template<> struct hash<gp2::Vertex>
-//    {
-//        size_t operator()(gp2::Vertex const& vertex) const
-//        {
-//            return ((hash<glm::vec3>()(vertex.pos) ^
-//                (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-//                (hash<glm::vec2>()(vertex.texCoord) << 1);
-//        }
-//    };
-//}
