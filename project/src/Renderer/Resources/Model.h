@@ -8,6 +8,8 @@
 #define GLM_FORCE_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
+#include "Texture.h"
+#include "../Buffer.h"
 //#define TINYOBJLOADER_IMPLEMENTATION
 //#include <tiny_obj_loader.h>
 //#include <unordered_map>
@@ -60,19 +62,31 @@ namespace gp2
 	    }
 	};
 
-	/*class Model
+	class Model
 	{
 	public:
-		Model(Device* pDevice, std::string path);
+		Model(Device* pDevice, CommandPool* pCommandPool, const std::string& path);
 		~Model();
+
 		Model(const Model&) = delete;
 		Model(Model&&) = delete;
 		Model& operator=(const Model&) = delete;
 		Model& operator=(Model&&) = delete;
 
+		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
+		const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
+
+		const Buffer* GetVertexBuffer() const { return m_VertexBuffer; }
+		const Buffer* GetIndexBuffer() const { return m_IndexBuffer; }
+
+		const std::vector<Texture*>& GetTextures() const { return m_Textures; }
+		void AddTexture(const Texture* pTexture) { m_Textures.push_back(const_cast<Texture*>(pTexture)); }
 
 	private:
         Device* m_pDevice;
+		CommandPool* m_pCommandPool;
+
+		std::vector<Texture*> m_Textures;
 
         std::vector<Vertex> m_Vertices;
         std::vector<uint32_t> m_Indices;
@@ -80,11 +94,10 @@ namespace gp2
         Buffer* m_VertexBuffer;
         Buffer* m_IndexBuffer;
 
-
-        void LoadModel(std::string path);
+        void LoadModel(const std::string& path);
         void CreateVertexBuffer();
         void CreateIndexBuffer();
-	};*/
+	};
 }
 
 //namespace std

@@ -4,6 +4,8 @@
 #include <stdexcept>
 
 #define VMA_IMPLEMENTATION
+#include <fstream>
+
 #include "vk_mem_alloc.h"
 
 gp2::Device::Device(const Window* window)
@@ -16,7 +18,19 @@ gp2::Device::Device(const Window* window)
 
 gp2::Device::~Device()
 {
-	vmaDestroyAllocator(m_Allocator);
+
+    /* Debugging VMA */
+    char* StatsString = nullptr;
+    vmaBuildStatsString(m_Allocator, &StatsString, true);
+    {
+        std::ofstream OutStats{ "VmaStats.json" };
+        OutStats << StatsString;
+    }
+    vmaFreeStatsString(m_Allocator, StatsString);
+    /* END - Debugging VMA */
+
+	//vmaDestroyAllocator(m_Allocator);
+
     vkDestroyDevice(m_LogicalDevice, nullptr);
     vkDestroySurfaceKHR(m_Instance.GetInstance(), m_Surface, nullptr);
 }

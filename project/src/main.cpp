@@ -58,38 +58,6 @@ const bool enableValidationLayers = false;
 const bool enableValidationLayers = true;
 #endif
 
-struct QueueFamilyIndices
-{
-    std::optional<uint32_t> graphicsFamily;
-    std::optional<uint32_t> presentFamily;
-
-    bool IsComplete()
-	{
-        return graphicsFamily.has_value() && presentFamily.has_value();
-    }
-};
-
-struct SwapChainSupportDetails
-{
-    VkSurfaceCapabilitiesKHR capabilities;
-    std::vector<VkSurfaceFormatKHR> formats;
-    std::vector<VkPresentModeKHR> presentModes;
-};
-
-namespace std
-{
-    template<> struct hash < gp2::Vertex >
-	{
-        size_t operator()(gp2::Vertex const& vertex) const
-    	{
-            return ((hash<glm::vec3>()(vertex.pos) ^
-                (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
-                (hash<glm::vec2>()(vertex.texCoord) << 1);
-        }
-    };
-}
-
-
 struct UniformBufferObject
 {
     alignas(16) glm::mat4 model;
@@ -102,7 +70,6 @@ class HelloTriangleApplication
 public:
     void Run()
 	{
-        //InitWindow();
         InitVulkan();
         MainLoop();
         Cleanup();
@@ -115,10 +82,6 @@ private:
         CleanupSwapChain();
 
         vkDestroySampler(m_Device.GetLogicalDevice(), m_TextureSampler, nullptr);
-        //vkDestroyImageView(m_Device.GetLogicalDevice(), m_TextureImageView, nullptr);
-
-        //vkDestroyImage(m_Device.GetLogicalDevice(), m_TextureImage, nullptr);
-        //vkFreeMemory(m_Device.GetLogicalDevice(), m_TextureImageMemory, nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
@@ -127,12 +90,6 @@ private:
         }
 
         vkDestroyDescriptorPool(m_Device.GetLogicalDevice(), m_DescriptorPool, nullptr);
-        //vkDestroyDescriptorSetLayout(m_Device.GetLogicalDevice(), m_DescriptorSetLayout, nullptr);
-
-        vkDestroyBuffer(m_Device.GetLogicalDevice(), m_IndexBuffer, nullptr);
-        vkFreeMemory(m_Device.GetLogicalDevice(), m_IndexBufferMemory, nullptr);
-
-        vkDestroyBuffer(m_Device.GetLogicalDevice(), m_VertexBuffer, nullptr);        //vkDestroyRenderPass(m_Device.GetLogicalDevice(), m_RenderPass.GetRenderPass(), nullptr);
 
         for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) 
         {
@@ -140,69 +97,7 @@ private:
             vkDestroySemaphore(m_Device.GetLogicalDevice(), m_ImageAvailableSemaphores[i], nullptr);
             vkDestroyFence(m_Device.GetLogicalDevice(), m_InFlightFences[i], nullptr);
         }
-        vkFreeMemory(m_Device.GetLogicalDevice(), m_VertexBufferMemory, nullptr);
-
-        //vkDestroyPipeline(m_Device.GetLogicalDevice(), m_GraphicsPipeline, nullptr);
-        //vkDestroyPipelineLayout(m_Device.GetLogicalDevice(), m_PipelineLayout, nullptr);
-
-
-
-        //vkDestroyCommandPool(m_Device.GetLogicalDevice(), m_CommandPool, nullptr);
     }
-
-
-    VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
-	{
-        for (const auto& availableFormat : availableFormats) 
-        {
-            if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) 
-            {
-                return availableFormat;
-            }
-        }
-
-        return availableFormats[0];
-    }
-
-    VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
-	{
-        for (const auto& availablePresentMode : availablePresentModes) 
-        {
-            if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) 
-            {
-                return availablePresentMode;
-            }
-        }
-
-        return VK_PRESENT_MODE_FIFO_KHR;
-    }
-
-    VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
-	{
-        if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max()) 
-        {
-            return capabilities.currentExtent;
-        }
-        else 
-        {
-            int width, height;
-            //glfwGetFramebufferSize(m_pWindow, &width, &height);
-            width = m_Window.GetWidth();
-            height = m_Window.GetHeight();
-
-            VkExtent2D actualExtent = 
-            {
-                static_cast<uint32_t>(width),
-                static_cast<uint32_t>(height)
-            };
-
-            actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-            actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-            return actualExtent;
-        }
-    }
-
 
     void CreateFramebuffers()
 	{
@@ -258,7 +153,6 @@ private:
         vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
         {
             vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
-            //vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_GraphicsPipeline);
 
             VkViewport viewport{};
             viewport.x = 0.0f;
@@ -274,13 +168,12 @@ private:
             scissor.extent = m_SwapChain.GetSwapChainExtent();
             vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-            VkBuffer vertexBuffers[] = { m_VertexBuffer };
+            VkBuffer vertexBuffers[] = { m_Model.GetVertexBuffer()->GetBuffer() };
             VkDeviceSize offsets[] = { 0 };
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffer, m_IndexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            vkCmdBindIndexBuffer(commandBuffer, m_Model.GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
             vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
-            //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_PipelineLayout, 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
-            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Indices.size()), 1, 0, 0, 0);
+            vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Model.GetIndices().size()), 1, 0, 0, 0);
         }
         vkCmdEndRenderPass(commandBuffer);
 
@@ -417,56 +310,18 @@ private:
 
     void CleanupSwapChain()
 	{
-        //vkDestroyImageView(m_Device.GetLogicalDevice(), m_DepthImageView, nullptr);
-        //vkDestroyImage(m_Device.GetLogicalDevice(),m_DepthImage, nullptr);
-        //vkFreeMemory(m_Device.GetLogicalDevice(), m_DepthImageMemory, nullptr);
-
         for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++) 
         {
             vkDestroyFramebuffer(m_Device.GetLogicalDevice(), m_SwapChainFramebuffers[i], nullptr);
         }
-
-        //for (size_t i = 0; i < m_SwapChainImageViews.size(); i++) 
-        //{
-        //    vkDestroyImageView(m_Device.GetLogicalDevice(), m_SwapChainImageViews[i], nullptr);
-        //}
-
-        //vkDestroySwapchainKHR(m_Device.GetLogicalDevice(), m_SwapChain, nullptr);
     }
 
     void RecreateSwapChain()
 	{
         m_SwapChain.RecreateSwapChain();
-        //CleanupSwapChain();
+        CleanupSwapChain();
 
         CreateFramebuffers();
-    }
-
- //   static void FramebufferResizeCallback(GLFWwindow* window, int width, int height)
-	//{
- //       auto app = reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
- //       app->m_FramebufferResized = true;
- //   }
-
-    void CreateVertexBuffer()
-	{
-        VkDeviceSize bufferSize = sizeof(m_Vertices[0]) * m_Vertices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void* data;
-        vkMapMemory(m_Device.GetLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, m_Vertices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_Device.GetLogicalDevice(), stagingBufferMemory);
-
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_VertexBuffer, m_VertexBufferMemory);
-
-        CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-
-        vkDestroyBuffer(m_Device.GetLogicalDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_Device.GetLogicalDevice(), stagingBufferMemory, nullptr);
     }
 
     void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory)
@@ -496,38 +351,6 @@ private:
         }
 
         vkBindBufferMemory(m_Device.GetLogicalDevice(), buffer, bufferMemory, 0);
-    }
-
-    void CopyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
-	{
-        VkCommandBuffer commandBuffer = m_CommandPool.BeginSingleTimeCommands();
-
-        VkBufferCopy copyRegion{};
-        copyRegion.size = size;
-        vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
-
-        m_CommandPool.EndSingleTimeCommands(commandBuffer);
-    }
-
-    void CreateIndexBuffer()
-    {
-        VkDeviceSize bufferSize = sizeof(m_Indices[0]) * m_Indices.size();
-
-        VkBuffer stagingBuffer;
-        VkDeviceMemory stagingBufferMemory;
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
-
-        void* data;
-        vkMapMemory(m_Device.GetLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-        memcpy(data, m_Indices.data(), (size_t)bufferSize);
-        vkUnmapMemory(m_Device.GetLogicalDevice(), stagingBufferMemory);
-
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_IndexBuffer, m_IndexBufferMemory);
-
-        CopyBuffer(stagingBuffer, m_IndexBuffer, bufferSize);
-
-        vkDestroyBuffer(m_Device.GetLogicalDevice(), stagingBuffer, nullptr);
-        vkFreeMemory(m_Device.GetLogicalDevice(), stagingBufferMemory, nullptr);
     }
 
     void CreateUniformBuffers()
@@ -569,7 +392,6 @@ private:
     void CreateDescriptorSets()
     {
         std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_Pipeline.GetDescriptorSetLayout());
-        //std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, m_DescriptorSetLayout);
         VkDescriptorSetAllocateInfo allocInfo{};
         allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         allocInfo.descriptorPool = m_DescriptorPool;
@@ -647,69 +469,13 @@ private:
         }
     }
 
-
-    void LoadModel()
-	{
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
-
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) 
-        {
-            throw std::runtime_error(warn + err);
-        }
-
-        std::unordered_map<gp2::Vertex, uint32_t> uniqueVertices{};
-
-
-        for (const auto& shape : shapes) 
-        {
-            for (const auto& index : shape.mesh.indices) 
-            {
-                gp2::Vertex vertex{};
-
-                vertex.pos = {
-				    attrib.vertices[3 * index.vertex_index + 0],
-				    attrib.vertices[3 * index.vertex_index + 1],
-				    attrib.vertices[3 * index.vertex_index + 2]
-                };
-
-                vertex.texCoord = {
-				    attrib.texcoords[2 * index.texcoord_index + 0],
-				    1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-                };
-
-                vertex.color = { 1.0f, 1.0f, 1.0f };
-
-                if (uniqueVertices.count(vertex) == 0) 
-                {
-                    uniqueVertices[vertex] = static_cast<uint32_t>(m_Vertices.size());
-                    m_Vertices.push_back(vertex);
-                }
-
-                m_Indices.push_back(uniqueVertices[vertex]);
-            }
-        }
-    }
-
     void InitVulkan()
 	{
-        //CreateDepthResources();
         CreateFramebuffers();
-
-        // Texture
-        //CreateTextureImage();
-        //CreateTextureImageView();
         CreateTextureSampler();
 
-		// Model 
-        LoadModel();
-    	CreateVertexBuffer();
-        CreateIndexBuffer();
         CreateUniformBuffers();
 
-		// Descriptor
         CreateDescriptorPool();
         CreateDescriptorSets();
 
@@ -746,6 +512,7 @@ private:
 	gp2::Pipeline m_Pipeline{ &m_Device, &m_SwapChain ,&m_RenderPass, "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
 
     gp2::Texture m_Texture{ &m_Device, &m_CommandPool, "textures/viking_room.png" };
+	gp2::Model m_Model{ &m_Device, &m_CommandPool, "models/viking_room.obj" };
 
 
     // Renderer
@@ -759,15 +526,6 @@ private:
     bool m_FramebufferResized = false;
     uint32_t m_CurrentFrame = 0;
 
-    std::vector<gp2::Vertex> m_Vertices;
-    std::vector<uint32_t> m_Indices;
-
-    // Model
-    VkBuffer m_VertexBuffer{};
-    VkDeviceMemory m_VertexBufferMemory{};
-    VkBuffer m_IndexBuffer{};
-    VkDeviceMemory m_IndexBufferMemory{};
-
     // Renderer
     std::vector<VkBuffer> m_UniformBuffers;
     std::vector<VkDeviceMemory> m_UniformBuffersMemory;
@@ -777,10 +535,6 @@ private:
     VkDescriptorPool m_DescriptorPool{};
     std::vector<VkDescriptorSet> m_DescriptorSets;
 
-
-    /*VkImage m_TextureImage{};
-    VkDeviceMemory m_TextureImageMemory{};*/
-    //VkImageView m_TextureImageView{};
     VkSampler m_TextureSampler{};
 };
 
