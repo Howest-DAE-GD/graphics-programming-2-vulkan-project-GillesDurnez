@@ -34,7 +34,7 @@ gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const 
 gp2::Image::~Image()
 {
 	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
-    vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, nullptr);
+    vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, m_ImageAllocation);
 }
 
 

@@ -30,6 +30,7 @@ gp2::Texture::Texture(Device* pDevice, CommandPool* pCommandPool, std::string pa
     vmaCopyMemoryToAllocation(m_pDevice->GetAllocator(), pixels, stagingBuffer.GetBufferAllocation(), 0, imageSize);
 
 	m_TextureImage = new Image{ m_pDevice, m_pCommandPool, static_cast<unsigned int>(texWidth), static_cast<unsigned int>(texHeight), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT };
+	vmaSetAllocationName(m_pDevice->GetAllocator(), m_TextureImage->GetImageAllocation(), "Texture image Buffer");
 
 	m_TextureImage->TransitionImageLayout(
 		VK_FORMAT_R8G8B8A8_SRGB,

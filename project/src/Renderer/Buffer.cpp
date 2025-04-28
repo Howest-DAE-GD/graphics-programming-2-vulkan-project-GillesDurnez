@@ -18,6 +18,7 @@ gp2::Buffer::Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCr
 	}
 
 	vmaCreateBuffer(pDevice->GetAllocator(), &bufferInfo, &allocInfo, &m_Buffer, &m_BufferAllocation, nullptr);
+	vmaSetAllocationName(pDevice->GetAllocator(), m_BufferAllocation, "MyBuffer");
 }
 
 gp2::Buffer::~Buffer()

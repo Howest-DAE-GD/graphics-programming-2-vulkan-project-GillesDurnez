@@ -29,8 +29,7 @@ gp2::Device::~Device()
     vmaFreeStatsString(m_Allocator, StatsString);
     /* END - Debugging VMA */
 
-	//vmaDestroyAllocator(m_Allocator);
-
+	vmaDestroyAllocator(m_Allocator);
     vkDestroyDevice(m_LogicalDevice, nullptr);
     vkDestroySurfaceKHR(m_Instance.GetInstance(), m_Surface, nullptr);
 }

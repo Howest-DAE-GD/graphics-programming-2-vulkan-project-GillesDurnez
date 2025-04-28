@@ -223,6 +223,8 @@ void gp2::SwapChain::CreateDepthResources()
 	m_pDepthImage = new Image{ m_pDevice, m_pCommandPool, depthImageCreateInfo };
 
     m_pDepthImage->TransitionImageLayout(depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+    vmaSetAllocationName(m_pDevice->GetAllocator(), m_pDepthImage->GetImageAllocation(), "Swapchain depth image Buffer");
+
 }
 
 void gp2::SwapChain::CleanupSwapChain()

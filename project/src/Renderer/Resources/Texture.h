@@ -15,6 +15,11 @@ namespace gp2
 		Texture(Device* pDevice, CommandPool* pCommandPool, std::string path);
 		~Texture();
 
+		Texture(const Texture&) = delete;
+		Texture(Texture&&) = default;
+		Texture& operator=(const Texture&) = delete;
+		Texture& operator=(Texture&&) = default;
+
 		Image* GetTextureImage() const { return m_TextureImage; }
 
 
