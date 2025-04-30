@@ -20,11 +20,11 @@ gp2::VkRenderer::~VkRenderer()
 
     vkDestroySampler(m_Device.GetLogicalDevice(), m_TextureSampler, nullptr);
 
-    for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        vkDestroyBuffer(m_Device.GetLogicalDevice(), m_UniformBuffers[i], nullptr);
-        vkFreeMemory(m_Device.GetLogicalDevice(), m_UniformBuffersMemory[i], nullptr);
-    }
+    //for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
+    //{
+    //    vkDestroyBuffer(m_Device.GetLogicalDevice(), m_UniformBuffers[i], nullptr);
+    //    vkFreeMemory(m_Device.GetLogicalDevice(), m_UniformBuffersMemory[i], nullptr);
+    //}
 
     vkDestroyDescriptorPool(m_Device.GetLogicalDevice(), m_DescriptorPool, nullptr);
 
@@ -166,14 +166,16 @@ void gp2::VkRenderer::CreateUniformBuffers()
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
     m_UniformBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
-    m_UniformBuffersMemory.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
-    m_UniformBuffersMapped.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
 
     for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
     {
-        CreateBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_UniformBuffers[i], m_UniformBuffersMemory[i]);
+        VkBufferCreateInfo bufferInfo{};
+        bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        bufferInfo.size = bufferSize;
+        bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-        vkMapMemory(m_Device.GetLogicalDevice(), m_UniformBuffersMemory[i], 0, bufferSize, 0, &m_UniformBuffersMapped[i]);
+		m_UniformBuffers[i] = Buffer{ &m_Device, &m_CommandPool, bufferInfo, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true };
     }
 }
 
@@ -215,7 +217,7 @@ void gp2::VkRenderer::CreateDescriptorSets()
     for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
     {
         VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_UniformBuffers[i];
+        bufferInfo.buffer = m_UniformBuffers[i].GetBuffer();
         bufferInfo.offset = 0;
         bufferInfo.range = sizeof(UniformBufferObject);
 
@@ -246,21 +248,6 @@ void gp2::VkRenderer::CreateDescriptorSets()
         vkUpdateDescriptorSets(m_Device.GetLogicalDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
     }
 }
-
-//void gp2::VkRenderer::CreateCommandBuffers()
-//{
-//    m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
-//
-//    VkCommandBufferAllocateInfo allocInfo{};
-//    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-//    allocInfo.commandPool = m_CommandPool.GetCommandPool();
-//    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-//    allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
-//
-//    if (vkAllocateCommandBuffers(m_Device.GetLogicalDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
-//        throw std::runtime_error("Failed to allocate command buffers!");
-//    }
-//}
 
 void gp2::VkRenderer::CreateSyncObjects()
 {
@@ -315,37 +302,38 @@ void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
     ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChain.GetSwapChainExtent().width / (float)m_SwapChain.GetSwapChainExtent().height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
-    memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
+	m_UniformBuffers[currentImage].CopyMemory(&ubo, sizeof(ubo), 0);
+    //memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-void gp2::VkRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
-{
-    VkBufferCreateInfo bufferInfo{};
-    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufferInfo.size = size;
-    bufferInfo.usage = usage;
-    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    if (vkCreateBuffer(m_Device.GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to create buffer!");
-    }
-
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements(m_Device.GetLogicalDevice(), buffer, &memRequirements);
-
-    VkMemoryAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize = memRequirements.size;
-    allocInfo.memoryTypeIndex = m_Device.FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-    if (vkAllocateMemory(m_Device.GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-    {
-        throw std::runtime_error("failed to allocate buffer memory!");
-    }
-
-    vkBindBufferMemory(m_Device.GetLogicalDevice(), buffer, bufferMemory, 0);
-}
+//void gp2::VkRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+//{
+//    VkBufferCreateInfo bufferInfo{};
+//    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+//    bufferInfo.size = size;
+//    bufferInfo.usage = usage;
+//    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+//
+//    if (vkCreateBuffer(m_Device.GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error("failed to create buffer!");
+//    }
+//
+//    VkMemoryRequirements memRequirements;
+//    vkGetBufferMemoryRequirements(m_Device.GetLogicalDevice(), buffer, &memRequirements);
+//
+//    VkMemoryAllocateInfo allocInfo{};
+//    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+//    allocInfo.allocationSize = memRequirements.size;
+//    allocInfo.memoryTypeIndex = m_Device.FindMemoryType(memRequirements.memoryTypeBits, properties);
+//
+//    if (vkAllocateMemory(m_Device.GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+//    {
+//        throw std::runtime_error("failed to allocate buffer memory!");
+//    }
+//
+//    vkBindBufferMemory(m_Device.GetLogicalDevice(), buffer, bufferMemory, 0);
+//}
 
 void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const
 {

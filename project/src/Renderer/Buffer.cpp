@@ -23,7 +23,30 @@ gp2::Buffer::Buffer(Device* pDevice, CommandPool* pCommandPool, const VkBufferCr
 
 gp2::Buffer::~Buffer()
 {
-	vmaDestroyBuffer(m_pDevice->GetAllocator(), m_Buffer, m_BufferAllocation);
+	if (m_Buffer != VK_NULL_HANDLE && m_BufferAllocation != VK_NULL_HANDLE)
+		vmaDestroyBuffer(m_pDevice->GetAllocator(), m_Buffer, m_BufferAllocation);
+}
+
+gp2::Buffer::Buffer(Buffer&& other)
+{
+	m_Buffer = other.m_Buffer;
+	m_BufferAllocation = other.m_BufferAllocation;
+	m_pDevice = other.m_pDevice;
+	m_pCommandPool = other.m_pCommandPool;
+	other.m_Buffer = VK_NULL_HANDLE;
+	other.m_BufferAllocation = VK_NULL_HANDLE;
+}
+
+gp2::Buffer& gp2::Buffer::operator=(Buffer&& other)
+{
+	m_Buffer = other.m_Buffer;
+	m_BufferAllocation = other.m_BufferAllocation;
+	m_pDevice = other.m_pDevice;
+	m_pCommandPool = other.m_pCommandPool;
+	other.m_Buffer = VK_NULL_HANDLE;
+	other.m_BufferAllocation = VK_NULL_HANDLE;
+
+	return *this;
 }
 
 void gp2::Buffer::CopyBuffer(VkBuffer srcBuffer, VkDeviceSize size) const
@@ -35,4 +58,9 @@ void gp2::Buffer::CopyBuffer(VkBuffer srcBuffer, VkDeviceSize size) const
     vkCmdCopyBuffer(commandBuffer, srcBuffer, m_Buffer, 1, &copyRegion);
 
     m_pCommandPool->EndSingleTimeCommands(commandBuffer);
+}
+
+void gp2::Buffer::CopyMemory(void* data, const VkDeviceSize& size, int offset) const
+{
+	vmaCopyMemoryToAllocation(m_pDevice->GetAllocator(), data, m_BufferAllocation, offset, size);
 }

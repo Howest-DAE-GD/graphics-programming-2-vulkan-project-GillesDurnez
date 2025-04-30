@@ -48,7 +48,7 @@ namespace gp2
         // Per Frame
         void RecreateSwapChain();
         void UpdateUniformBuffer(uint32_t currentImage) const;
-        void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
+        //void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
         void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
 
 
@@ -77,9 +77,9 @@ namespace gp2
         uint32_t m_CurrentFrame = 0;
 
         // Renderer
-        std::vector<VkBuffer> m_UniformBuffers;
-        std::vector<VkDeviceMemory> m_UniformBuffersMemory;
-        std::vector<void*> m_UniformBuffersMapped;
+        std::vector<Buffer> m_UniformBuffers;
+        //std::vector<VkDeviceMemory> m_UniformBuffersMemory;
+        //std::vector<void*> m_UniformBuffersMapped;
 
         // Renderer
         VkDescriptorPool m_DescriptorPool{};
