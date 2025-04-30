@@ -5,6 +5,9 @@
 
 gp2::VkRenderer::VkRenderer()
 {
+    m_Scene.AddTexture(new Texture{ &m_Device, &m_CommandPool, "textures/viking_room.png" });
+    m_Scene.AddModel(new Model{ &m_Device, &m_CommandPool, "models/viking_room.obj" });
+
     CreateFrameBuffers();
     CreateTextureSampler();
     CreateUniformBuffers();
@@ -223,7 +226,7 @@ void gp2::VkRenderer::CreateDescriptorSets()
 
         VkDescriptorImageInfo imageInfo{};
         imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_Texture.GetTextureImage()->GetImageView();
+        imageInfo.imageView = m_Scene.GetTexture(0)->GetTextureImage()->GetImageView();
         imageInfo.sampler = m_TextureSampler;
 
 
@@ -306,35 +309,6 @@ void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     //memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-//void gp2::VkRenderer::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
-//{
-//    VkBufferCreateInfo bufferInfo{};
-//    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-//    bufferInfo.size = size;
-//    bufferInfo.usage = usage;
-//    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-//
-//    if (vkCreateBuffer(m_Device.GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-//    {
-//        throw std::runtime_error("failed to create buffer!");
-//    }
-//
-//    VkMemoryRequirements memRequirements;
-//    vkGetBufferMemoryRequirements(m_Device.GetLogicalDevice(), buffer, &memRequirements);
-//
-//    VkMemoryAllocateInfo allocInfo{};
-//    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-//    allocInfo.allocationSize = memRequirements.size;
-//    allocInfo.memoryTypeIndex = m_Device.FindMemoryType(memRequirements.memoryTypeBits, properties);
-//
-//    if (vkAllocateMemory(m_Device.GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-//    {
-//        throw std::runtime_error("failed to allocate buffer memory!");
-//    }
-//
-//    vkBindBufferMemory(m_Device.GetLogicalDevice(), buffer, bufferMemory, 0);
-//}
-
 void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const
 {
     VkCommandBufferBeginInfo beginInfo{};
@@ -380,12 +354,12 @@ void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         scissor.extent = m_SwapChain.GetSwapChainExtent();
         vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        VkBuffer vertexBuffers[] = { m_Model.GetVertexBuffer()->GetBuffer() };
+        VkBuffer vertexBuffers[] = { m_Scene.GetModel(0)->GetVertexBuffer()->GetBuffer() };
         VkDeviceSize offsets[] = { 0 };
         vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, m_Model.GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+        vkCmdBindIndexBuffer(commandBuffer, m_Scene.GetModel(0)->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Model.GetIndices().size()), 1, 0, 0, 0);
+        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Scene.GetModel(0)->GetIndices().size()), 1, 0, 0, 0);
     }
     vkCmdEndRenderPass(commandBuffer);
 

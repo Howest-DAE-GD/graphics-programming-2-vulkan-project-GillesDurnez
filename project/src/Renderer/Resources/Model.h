@@ -65,13 +65,15 @@ namespace gp2
 	class Model
 	{
 	public:
+		Model() = default;
+
 		Model(Device* pDevice, CommandPool* pCommandPool, const std::string& path);
 		~Model();
 
 		Model(const Model&) = delete;
-		Model(Model&&) = delete;
+		Model(Model&&) noexcept;
 		Model& operator=(const Model&) = delete;
-		Model& operator=(Model&&) = delete;
+		Model& operator=(Model&&) noexcept;
 
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<uint32_t>& GetIndices() const { return m_Indices; }
@@ -79,14 +81,13 @@ namespace gp2
 		const Buffer* GetVertexBuffer() const { return m_VertexBuffer; }
 		const Buffer* GetIndexBuffer() const { return m_IndexBuffer; }
 
-		const std::vector<Texture*>& GetTextures() const { return m_Textures; }
-		void AddTexture(const Texture* pTexture) { m_Textures.push_back(const_cast<Texture*>(pTexture)); }
+		void AddTexture(uint32_t index) { m_TextureIndexes.push_back(index); }
 
 	private:
         Device* m_pDevice;
 		CommandPool* m_pCommandPool;
 
-		std::vector<Texture*> m_Textures;
+		std::vector<uint32_t> m_TextureIndexes;
 
         std::vector<Vertex> m_Vertices;
         std::vector<uint32_t> m_Indices;

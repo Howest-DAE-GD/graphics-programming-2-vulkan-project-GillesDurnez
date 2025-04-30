@@ -57,3 +57,23 @@ gp2::Texture::~Texture()
 		m_TextureImage = nullptr;
 	}
 }
+
+gp2::Texture::Texture(Texture&& other) noexcept
+{
+	m_pDevice = other.m_pDevice;
+	m_pCommandPool = other.m_pCommandPool;
+	m_TextureImage = other.m_TextureImage;
+
+	other.m_TextureImage = nullptr;
+}
+
+gp2::Texture& gp2::Texture::operator=(Texture&& other) noexcept
+{
+	m_pDevice = other.m_pDevice;
+	m_pCommandPool = other.m_pCommandPool;
+	m_TextureImage = other.m_TextureImage;
+
+	other.m_TextureImage = nullptr;
+
+	return *this;
+}

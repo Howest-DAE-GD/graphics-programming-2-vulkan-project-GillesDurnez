@@ -44,6 +44,34 @@ gp2::Image::~Image()
     vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, m_ImageAllocation);
 }
 
+gp2::Image::Image(Image&& other) noexcept
+{
+	m_Image = other.m_Image;
+	m_ImageAllocation = other.m_ImageAllocation;
+	m_ImageView = other.m_ImageView;
+	m_pDevice = other.m_pDevice;
+	m_pCommandPool = other.m_pCommandPool;
+
+	other.m_Image = VK_NULL_HANDLE;
+	other.m_ImageAllocation = VK_NULL_HANDLE;
+	other.m_ImageView = VK_NULL_HANDLE;
+}
+
+gp2::Image& gp2::Image::operator=(Image&& other) noexcept
+{
+    m_Image = other.m_Image;
+    m_ImageAllocation = other.m_ImageAllocation;
+    m_ImageView = other.m_ImageView;
+    m_pDevice = other.m_pDevice;
+    m_pCommandPool = other.m_pCommandPool;
+
+    other.m_Image = VK_NULL_HANDLE;
+    other.m_ImageAllocation = VK_NULL_HANDLE;
+    other.m_ImageView = VK_NULL_HANDLE;
+
+	return *this;
+}
+
 
 void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const
 {

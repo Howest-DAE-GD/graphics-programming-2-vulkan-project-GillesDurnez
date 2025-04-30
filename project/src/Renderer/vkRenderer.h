@@ -12,6 +12,7 @@
 #include "Pipeline.h"
 #include "Resources/Texture.h"
 #include "Resources/Model.h"
+#include "Resources/Scene.h"
 
 namespace gp2
 {
@@ -48,7 +49,6 @@ namespace gp2
         // Per Frame
         void RecreateSwapChain();
         void UpdateUniformBuffer(uint32_t currentImage) const;
-        //void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
         void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
 
 
@@ -62,8 +62,9 @@ namespace gp2
         RenderPass m_RenderPass{ &m_Device, &m_SwapChain };
         Pipeline m_Pipeline{ &m_Device, &m_SwapChain ,&m_RenderPass, "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
 
-        Texture m_Texture{ &m_Device, &m_CommandPool, "textures/viking_room.png" };
-        Model m_Model{ &m_Device, &m_CommandPool, "models/viking_room.obj" };
+        // Todo move outside of renderer
+		Scene m_Scene{};
+
 
 
         // Renderer
@@ -78,8 +79,6 @@ namespace gp2
 
         // Renderer
         std::vector<Buffer> m_UniformBuffers;
-        //std::vector<VkDeviceMemory> m_UniformBuffersMemory;
-        //std::vector<void*> m_UniformBuffersMapped;
 
         // Renderer
         VkDescriptorPool m_DescriptorPool{};

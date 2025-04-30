@@ -21,6 +21,8 @@ namespace gp2
 			VkMemoryPropertyFlags properties;
 		};
 
+		Image() = default;
+
 		Image(const Device* pDevice, const CommandPool* pCommandPool,
 			uint32_t width, 
 			uint32_t height, 
@@ -34,9 +36,9 @@ namespace gp2
 		~Image();
 
 		Image(const Image&) = delete;
-		Image(Image&&) = default;
+		Image(Image&&) noexcept;
 		Image& operator=(const Image&) = delete;
-		Image& operator=(Image&&) = default;
+		Image& operator=(Image&&) noexcept;
 
 		VkImage GetImage() const { return m_Image; }
 		VkImageView GetImageView() const { return m_ImageView; }
@@ -55,8 +57,8 @@ namespace gp2
 		const Device* m_pDevice;
 		const CommandPool* m_pCommandPool;
 
-		VkImage m_Image;
-		VmaAllocation m_ImageAllocation;
-		VkImageView m_ImageView;
+		VkImage m_Image{};
+		VmaAllocation m_ImageAllocation{};
+		VkImageView m_ImageView{};
 	};
 }

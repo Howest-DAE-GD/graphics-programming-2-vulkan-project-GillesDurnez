@@ -12,13 +12,15 @@ namespace gp2
 	class Texture
 	{
 	public:
+		Texture() = default;
+
 		Texture(Device* pDevice, CommandPool* pCommandPool, std::string path);
 		~Texture();
 
 		Texture(const Texture&) = delete;
-		Texture(Texture&&) = default;
+		Texture(Texture&&) noexcept;
 		Texture& operator=(const Texture&) = delete;
-		Texture& operator=(Texture&&) = default;
+		Texture& operator=(Texture&&) noexcept;
 
 		Image* GetTextureImage() const { return m_TextureImage; }
 

@@ -42,6 +42,36 @@ gp2::Model::~Model()
 	m_IndexBuffer = nullptr;
 }
 
+gp2::Model::Model(Model&& other) noexcept
+{
+	m_Vertices = std::move(other.m_Vertices);
+	m_Indices = std::move(other.m_Indices);
+	m_VertexBuffer = std::move(other.m_VertexBuffer);
+	m_IndexBuffer = std::move(other.m_IndexBuffer);
+	m_pDevice = std::move(other.m_pDevice);
+	m_pCommandPool = std::move(other.m_pCommandPool);
+	m_TextureIndexes = std::move(other.m_TextureIndexes);
+
+	other.m_VertexBuffer = nullptr;
+	other.m_IndexBuffer = nullptr;
+}
+
+gp2::Model& gp2::Model::operator=(Model&& other) noexcept
+{
+    m_Vertices = std::move(other.m_Vertices);
+    m_Indices = std::move(other.m_Indices);
+    m_VertexBuffer = std::move(other.m_VertexBuffer);
+    m_IndexBuffer = std::move(other.m_IndexBuffer);
+    m_pDevice = std::move(other.m_pDevice);
+    m_pCommandPool = std::move(other.m_pCommandPool);
+    m_TextureIndexes = std::move(other.m_TextureIndexes);
+
+    other.m_VertexBuffer = nullptr;
+    other.m_IndexBuffer = nullptr;
+
+    return *this;
+}
+
 void gp2::Model::LoadModel(const std::string& path)
 {
     tinyobj::attrib_t attrib;
@@ -102,12 +132,6 @@ void gp2::Model::CreateVertexBuffer()
 
     vmaCopyMemoryToAllocation(m_pDevice->GetAllocator(), m_Vertices.data(), stagingBuffer.GetBufferAllocation(), 0, bufferSize);
 
-    
-    //void* data;
-    //vkMapMemory(m_Device.GetLogicalDevice(), stagingBufferMemory, 0, bufferSize, 0, &data);
-    //memcpy(data, m_Vertices.data(), (size_t)bufferSize);
-    //vkUnmapMemory(m_Device.GetLogicalDevice(), stagingBufferMemory);
-
 	VkBufferCreateInfo vertexBufferInfo{};
 	vertexBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	vertexBufferInfo.size = bufferSize;
@@ -115,11 +139,6 @@ void gp2::Model::CreateVertexBuffer()
 
     m_VertexBuffer = new Buffer{ m_pDevice, m_pCommandPool, vertexBufferInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT };
     m_VertexBuffer->CopyBuffer(stagingBuffer.GetBuffer(), bufferSize);
-
-    //CopyBuffer(stagingBuffer, m_VertexBuffer, bufferSize);
-
-    //vkDestroyBuffer(m_Device.GetLogicalDevice(), stagingBuffer, nullptr);
-    //vkFreeMemory(m_Device.GetLogicalDevice(), stagingBufferMemory, nullptr);
 }
 
 void gp2::Model::CreateIndexBuffer()
