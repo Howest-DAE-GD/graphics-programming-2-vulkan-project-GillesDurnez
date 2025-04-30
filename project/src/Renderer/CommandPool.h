@@ -14,12 +14,16 @@ namespace gp2
 		void EndSingleTimeCommands(VkCommandBuffer commandBuffer) const;
 
 		VkCommandPool GetCommandPool() const { return m_CommandPool; }
+		std::vector<VkCommandBuffer>& GetCommandBuffers() { return m_CommandBuffers; }
 
 	private:
 		Device* m_pDevice;
 
 		VkCommandPool m_CommandPool;
+		std::vector<VkCommandBuffer> m_CommandBuffers;
 
 		void CreateCommandPool();
+		void CreateCommandBuffers();
+
 	};
 }

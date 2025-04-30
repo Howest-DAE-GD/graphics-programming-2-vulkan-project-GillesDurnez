@@ -2,10 +2,13 @@
 
 #include <stdexcept>
 
+#include "SwapChain.h"
+
 gp2::CommandPool::CommandPool(Device* pDevice)
 	: m_pDevice(pDevice)
 {
 	CreateCommandPool();
+	CreateCommandBuffers();
 }
 
 gp2::CommandPool::~CommandPool()
@@ -60,5 +63,20 @@ void gp2::CommandPool::CreateCommandPool()
 	if (vkCreateCommandPool(m_pDevice->GetLogicalDevice(), &poolInfo, nullptr, &m_CommandPool) != VK_SUCCESS)
 	{
 		throw std::runtime_error("Failed to create command pool!");
+	}
+}
+
+void gp2::CommandPool::CreateCommandBuffers()
+{
+	m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
+
+	VkCommandBufferAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = m_CommandPool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+
+	if (vkAllocateCommandBuffers(m_pDevice->GetLogicalDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
+		throw std::runtime_error("Failed to allocate command buffers!");
 	}
 }

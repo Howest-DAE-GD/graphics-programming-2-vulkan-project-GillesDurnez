@@ -10,7 +10,6 @@ gp2::VkRenderer::VkRenderer()
     CreateUniformBuffers();
     CreateDescriptorPool();
     CreateDescriptorSets();
-    CreateCommandBuffers();
     CreateSyncObjects();
 }
 
@@ -59,8 +58,8 @@ void gp2::VkRenderer::RenderFrame()
 
     vkResetFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame]);
 
-    vkResetCommandBuffer(m_CommandBuffers[m_CurrentFrame], 0);
-    RecordCommandBuffer(m_CommandBuffers[m_CurrentFrame], imageIndex);
+    vkResetCommandBuffer(m_CommandPool.GetCommandBuffers()[m_CurrentFrame], 0);
+    RecordCommandBuffer(m_CommandPool.GetCommandBuffers()[m_CurrentFrame], imageIndex);
 
     VkSubmitInfo submitInfo{};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -71,7 +70,7 @@ void gp2::VkRenderer::RenderFrame()
     submitInfo.pWaitSemaphores = waitSemaphores;
     submitInfo.pWaitDstStageMask = waitStages;
     submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &m_CommandBuffers[m_CurrentFrame];
+    submitInfo.pCommandBuffers = &m_CommandPool.GetCommandBuffers()[m_CurrentFrame];
 
     VkSemaphore signalSemaphores[] = { m_RenderFinishedSemaphores[m_CurrentFrame] };
     submitInfo.signalSemaphoreCount = 1;
@@ -248,20 +247,20 @@ void gp2::VkRenderer::CreateDescriptorSets()
     }
 }
 
-void gp2::VkRenderer::CreateCommandBuffers()
-{
-    m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
-
-    VkCommandBufferAllocateInfo allocInfo{};
-    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    allocInfo.commandPool = m_CommandPool.GetCommandPool();
-    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
-
-    if (vkAllocateCommandBuffers(m_Device.GetLogicalDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
-        throw std::runtime_error("Failed to allocate command buffers!");
-    }
-}
+//void gp2::VkRenderer::CreateCommandBuffers()
+//{
+//    m_CommandBuffers.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
+//
+//    VkCommandBufferAllocateInfo allocInfo{};
+//    allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+//    allocInfo.commandPool = m_CommandPool.GetCommandPool();
+//    allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+//    allocInfo.commandBufferCount = static_cast<uint32_t>(m_CommandBuffers.size());
+//
+//    if (vkAllocateCommandBuffers(m_Device.GetLogicalDevice(), &allocInfo, m_CommandBuffers.data()) != VK_SUCCESS) {
+//        throw std::runtime_error("Failed to allocate command buffers!");
+//    }
+//}
 
 void gp2::VkRenderer::CreateSyncObjects()
 {

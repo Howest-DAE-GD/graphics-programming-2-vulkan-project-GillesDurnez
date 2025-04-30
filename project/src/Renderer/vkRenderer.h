@@ -40,7 +40,6 @@ namespace gp2
         void CreateUniformBuffers();
         void CreateDescriptorPool();
         void CreateDescriptorSets();
-        void CreateCommandBuffers();
         void CreateSyncObjects();
 
         // Cleanup
@@ -69,7 +68,6 @@ namespace gp2
 
         // Renderer
         std::vector<VkFramebuffer> m_SwapChainFramebuffers;
-        std::vector<VkCommandBuffer> m_CommandBuffers;
 
         std::vector<VkSemaphore> m_ImageAvailableSemaphores;
         std::vector<VkSemaphore> m_RenderFinishedSemaphores;
