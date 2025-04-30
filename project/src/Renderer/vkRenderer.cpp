@@ -42,6 +42,8 @@ gp2::VkRenderer::~VkRenderer()
 
 void gp2::VkRenderer::RenderFrame()
 {
+    m_Camera.Update();
+
     vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -291,6 +293,7 @@ void gp2::VkRenderer::RecreateSwapChain()
     CleanupSwapChain();
 
     CreateFrameBuffers();
+    m_Camera.aspectRatio = m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height);
 }
 
 void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage) const
@@ -302,8 +305,11 @@ void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage) const
 
     UniformBufferObject ubo{};
     ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//ubo.model = glm::mat4(1.0f);
+    //ubo.view = m_Camera.viewMatrix;
     ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChain.GetSwapChainExtent().width / (float)m_SwapChain.GetSwapChainExtent().height, 0.1f, 10.0f);
+    //ubo.proj = m_Camera.projectionMatrix;
+	ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChain.GetSwapChainExtent().width / (float)m_SwapChain.GetSwapChainExtent().height, 0.1f, 10.0f);
     ubo.proj[1][1] *= -1;
 	m_UniformBuffers[currentImage].CopyMemory(&ubo, sizeof(ubo), 0);
     //memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));

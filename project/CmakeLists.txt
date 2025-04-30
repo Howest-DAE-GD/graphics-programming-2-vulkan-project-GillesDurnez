@@ -46,7 +46,9 @@ set( SRC_FILES
     "src/Renderer/CommandPool.cpp"
     "src/Renderer/Resources/Shader.cpp" 
     "src/Renderer/Resources/Scene.cpp"
-    "src/Renderer/Defines.h")
+    "src/Renderer/Defines.h" 
+    "src/Renderer/Camera.h" 
+    "src/Time.h")
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 
