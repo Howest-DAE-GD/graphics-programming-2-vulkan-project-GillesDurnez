@@ -31,6 +31,13 @@ gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const 
 	CreateImageView(imageCreate.format, imageCreate.aspectFlags);
 }
 
+gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const VkImageCreateInfo& vkImageCreateInfo,
+	const VkMemoryPropertyFlags& properties, const VkFormat& format, const VkImageAspectFlags& aspectFlags)
+{
+    CreateImage(vkImageCreateInfo, properties);
+    CreateImageView(format, aspectFlags);
+}
+
 gp2::Image::~Image()
 {
 	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
@@ -165,11 +172,17 @@ void gp2::Image::CreateImage(const ImageCreateInfo& imageCreateInfo)
     imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	VmaAllocationCreateInfo allocInfo{};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.requiredFlags = imageCreateInfo.properties;
+	CreateImage(imageInfo, imageCreateInfo.properties);
+}
 
-    vmaCreateImage(m_pDevice->GetAllocator(), &imageInfo, &allocInfo, &m_Image, &m_ImageAllocation, nullptr);
+void gp2::Image::CreateImage(const VkImageCreateInfo& imageCreateInfo, const VkMemoryPropertyFlags& properties)
+{
+
+    VmaAllocationCreateInfo allocInfo{};
+    allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    allocInfo.requiredFlags = properties;
+
+    vmaCreateImage(m_pDevice->GetAllocator(), &imageCreateInfo, &allocInfo, &m_Image, &m_ImageAllocation, nullptr);
 }
 
 void gp2::Image::CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags)

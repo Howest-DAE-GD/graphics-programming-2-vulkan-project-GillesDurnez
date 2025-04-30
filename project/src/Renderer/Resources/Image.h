@@ -30,6 +30,7 @@ namespace gp2
 			VkImageAspectFlags aspectFlags,
 			VkMemoryPropertyFlags properties);
 		Image(const Device* pDevice, const CommandPool* pCommandPool, const ImageCreateInfo& imageCreate);
+		Image(const Device* pDevice, const CommandPool* pCommandPool, const VkImageCreateInfo& vkImageCreateInfo, const VkMemoryPropertyFlags& properties, const VkFormat& format, const VkImageAspectFlags& aspectFlags);
 		~Image();
 
 		Image(const Image&) = delete;
@@ -48,6 +49,7 @@ namespace gp2
 	private:
 
 		void CreateImage(const ImageCreateInfo& imageCreateInfo);
+		void CreateImage(const VkImageCreateInfo& imageCreateInfo, const VkMemoryPropertyFlags& properties);
 
 	protected:
 		const Device* m_pDevice;
