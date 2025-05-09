@@ -36,7 +36,7 @@ void gp2::Instance::CreateInstance()
     appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
     appInfo.pEngineName = "No Engine";
     appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-    appInfo.apiVersion = VK_API_VERSION_1_0;
+    appInfo.apiVersion = VK_API_VERSION_1_3;
 
     VkInstanceCreateInfo createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -189,7 +189,7 @@ VkBool32 gp2::Instance::DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT mes
     if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     {
         // Message is important enough to show
-        std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+        std::cerr << "+-----------------------------------------+\n" << "Validation layer: " << pCallbackData->pMessage << "\n\n";
     }
 
     return VK_FALSE;

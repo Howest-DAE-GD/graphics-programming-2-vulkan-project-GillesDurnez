@@ -5,6 +5,7 @@
 
 #define VMA_IMPLEMENTATION
 #include <fstream>
+#include <map>
 
 #include "vk_mem_alloc.h"
 
@@ -14,11 +15,12 @@ gp2::Device::Device(const Window* window)
 	PickPhysicalDevice();
 	CreateLogicalDevice();
     SetupVMA();
+	m_pDebugger = new DeviceDebugger(m_LogicalDevice);
 }
 
 gp2::Device::~Device()
 {
-
+    delete m_pDebugger;
     /* Debugging VMA */
     char* StatsString = nullptr;
     vmaBuildStatsString(m_Allocator, &StatsString, true);
@@ -77,22 +79,25 @@ void gp2::Device::PickPhysicalDevice()
     std::vector<VkPhysicalDevice> devices(deviceCount);
     vkEnumeratePhysicalDevices(m_Instance.GetInstance(), &deviceCount, devices.data());
 
-    for (const auto& device : devices)
+    std::multimap<int, VkPhysicalDevice> candidates;
+
+    for (const auto& device : devices) 
     {
-        if (IsDeviceSuitable(device))
-        {
-            m_PhysicalDevice = device;
-            break;
-        }
+        int score = RateDeviceSuitability(device);
+        candidates.insert(std::make_pair(score, device));
     }
 
-    if (m_PhysicalDevice == VK_NULL_HANDLE)
+    if (candidates.rbegin()->first > 0) 
+    {
+        m_PhysicalDevice = candidates.rbegin()->second;
+    }
+    else 
     {
         throw std::runtime_error("failed to find a suitable GPU!");
     }
 }
 
-bool gp2::Device::IsDeviceSuitable(VkPhysicalDevice device) const
+int gp2::Device::RateDeviceSuitability(VkPhysicalDevice device) const
 {
     gp2::Device::QueueFamilyIndices indices = FindQueueFamilies(device);
 
@@ -105,10 +110,39 @@ bool gp2::Device::IsDeviceSuitable(VkPhysicalDevice device) const
         swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
     }
 
-    VkPhysicalDeviceFeatures supportedFeatures;
-    vkGetPhysicalDeviceFeatures(device, &supportedFeatures);
 
-    return indices.IsComplete() && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+    VkPhysicalDeviceProperties deviceProperties;
+
+    VkPhysicalDeviceVulkan13Features vulkan13Features;
+    VkPhysicalDeviceFeatures2 features2;
+
+    vulkan13Features = {
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+	    .pNext = NULL,
+		.synchronization2 = VK_TRUE,
+        .dynamicRendering = VK_TRUE,
+    };
+
+    features2 = {
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+	    .pNext = &vulkan13Features
+    };
+
+    vkGetPhysicalDeviceProperties(device, &deviceProperties);
+    vkGetPhysicalDeviceFeatures2(device, &features2);
+
+    int score = 0;
+
+    // Discrete GPUs have a significant performance advantage
+    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) 
+    {
+        score += 1000;
+    }
+
+    // Maximum possible size of textures affects graphics quality
+    score += deviceProperties.limits.maxImageDimension2D;
+
+    return score;
 }
 
 gp2::Device::QueueFamilyIndices gp2::Device::FindQueueFamilies(VkPhysicalDevice device) const
@@ -236,8 +270,28 @@ void gp2::Device::CreateLogicalDevice()
         queueCreateInfos.push_back(queueCreateInfo);
     }
 
+
     VkPhysicalDeviceFeatures deviceFeatures{ VK_FALSE };
     deviceFeatures.samplerAnisotropy = VK_TRUE;
+
+	VkPhysicalDeviceVulkan11Features vulkan11Features{};
+	vulkan11Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES;
+	vulkan11Features.pNext = nullptr;
+
+	VkPhysicalDeviceVulkan12Features vulkan12Features{};
+	vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+	vulkan12Features.pNext = &vulkan11Features;
+
+	VkPhysicalDeviceVulkan13Features vulkan13Features{};
+	vulkan13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+	vulkan13Features.pNext = &vulkan12Features;
+	vulkan13Features.synchronization2 = VK_TRUE;
+	vulkan13Features.dynamicRendering = VK_TRUE;
+
+	VkPhysicalDeviceFeatures2 features2{};
+	features2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	features2.features = deviceFeatures;
+	features2.pNext = &vulkan13Features;
 
     VkDeviceCreateInfo createInfo{};
 
@@ -246,7 +300,8 @@ void gp2::Device::CreateLogicalDevice()
     createInfo.pQueueCreateInfos = queueCreateInfos.data();
     createInfo.enabledExtensionCount = static_cast<uint32_t>(m_DeviceExtensions.size());
     createInfo.ppEnabledExtensionNames = m_DeviceExtensions.data();
-    createInfo.pEnabledFeatures = &deviceFeatures;
+    //createInfo.pEnabledFeatures = &deviceFeatures;
+	createInfo.pNext = &features2;
 
     if (m_Instance.IsValidationLayersEnabled())
     {
@@ -270,7 +325,7 @@ void gp2::Device::CreateLogicalDevice()
 void gp2::Device::SetupVMA()
 {
 	VmaAllocatorCreateInfo allocatorInfo{};
-	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_0;
+	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 	allocatorInfo.physicalDevice = m_PhysicalDevice;
 	allocatorInfo.device = m_LogicalDevice;
 	allocatorInfo.instance = m_Instance.GetInstance();

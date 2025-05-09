@@ -21,8 +21,9 @@ namespace gp2
 
 		VkSwapchainKHR GetSwapChain() const { return m_SwapChain; }
 		VkExtent2D GetSwapChainExtent() const { return m_SwapChainExtent; }
-		VkFormat GetImageFormat() const { return m_SwapChainImageFormat; }
-		std::vector<VkImageView> GetImageViews() const { return m_SwapChainImageViews; }
+		const VkFormat& GetImageFormat() const { return m_SwapChainImageFormat; }
+		std::vector<Image>& GetImages() { return m_SwapChainImages; }
+		
 		Image* GetDepthImage() const { return m_pDepthImage; }
 
 		void RecreateSwapChain();
@@ -38,7 +39,7 @@ namespace gp2
 
 	private:
 		void CreateSwapChain();
-		void CreateImageViews();
+		//void CreateImageViews();
 		void CreateDepthResources();
 
 		void CleanupSwapChain();
@@ -47,7 +48,7 @@ namespace gp2
 		static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
 
-		VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
+		//VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
 		VkFormat FindDepthFormat() const;
 		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
 
@@ -57,10 +58,9 @@ namespace gp2
 		CommandPool* m_pCommandPool{};
 
 		VkSwapchainKHR				m_SwapChain{};
-		std::vector<VkImage>		m_SwapChainImages;
+		std::vector<Image>			m_SwapChainImages{};
 		VkFormat					m_SwapChainImageFormat{};
 		VkExtent2D					m_SwapChainExtent{};
-		std::vector<VkImageView>	m_SwapChainImageViews{};
 
 		Image* m_pDepthImage{};
 

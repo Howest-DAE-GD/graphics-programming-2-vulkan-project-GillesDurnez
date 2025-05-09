@@ -33,6 +33,8 @@ namespace gp2
 			VkMemoryPropertyFlags properties);
 		Image(const Device* pDevice, const CommandPool* pCommandPool, const ImageCreateInfo& imageCreate);
 		Image(const Device* pDevice, const CommandPool* pCommandPool, const VkImageCreateInfo& vkImageCreateInfo, const VkMemoryPropertyFlags& properties, const VkFormat& format, const VkImageAspectFlags& aspectFlags);
+		Image(const Device* pDevice, const CommandPool* pCommandPool, VkImage image, const VkFormat& format, const VkImageAspectFlags& aspectFlags);
+
 		~Image();
 
 		Image(const Image&) = delete;
@@ -43,10 +45,19 @@ namespace gp2
 		VkImage GetImage() const { return m_Image; }
 		VkImageView GetImageView() const { return m_ImageView; }
 		VmaAllocation GetImageAllocation() const { return m_ImageAllocation; }
+		VkImageLayout GetImageLayout() const { return m_ImageLayout; }
 
-		void TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const;
+		void CleanupImageView();
+		//void RecreateImageView();
+
+		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout newLayout);
+		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
+
 		void CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height) const;
 		void CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags);
+
+		VkFormat GetFormat() const { return m_Format; }
 
 	private:
 
@@ -60,5 +71,9 @@ namespace gp2
 		VkImage m_Image{};
 		VmaAllocation m_ImageAllocation{};
 		VkImageView m_ImageView{};
+
+		VkFormat m_Format{};
+		VkImageLayout m_ImageLayout{ VK_IMAGE_LAYOUT_UNDEFINED };
+		VkImageAspectFlags m_ImageAspectFlags{ VK_IMAGE_ASPECT_COLOR_BIT };
 	};
 }

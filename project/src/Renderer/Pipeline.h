@@ -15,6 +15,7 @@ namespace gp2
 	{
 	public:
 		Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass, const std::string& vertShaderPath, const std::string& fragShaderPath);
+		Pipeline(Device* device, SwapChain* swapChain, const std::string& vertShaderPath, const std::string& fragShaderPath);
 		~Pipeline();
 
 		Pipeline(const Pipeline&) = delete;
@@ -31,9 +32,9 @@ namespace gp2
 		void CreateDescriptorSetLayout();
 		void CreateGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath);
 
-		Device* m_pDevice;
-		SwapChain* m_pSwapChain;
-		RenderPass* m_pRenderPass;
+		Device* m_pDevice{};
+		SwapChain* m_pSwapChain{};
+		RenderPass* m_pRenderPass{};
 
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;

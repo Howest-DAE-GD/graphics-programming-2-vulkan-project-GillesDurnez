@@ -9,7 +9,7 @@
 
 gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling,
                   VkImageUsageFlags usage, VkImageAspectFlags aspectFlags, VkMemoryPropertyFlags properties)
-	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool), m_Format(format)
 {
 	ImageCreateInfo imageCreateInfo{};
 	imageCreateInfo.width = width;
@@ -25,7 +25,7 @@ gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, uint32
 }
 
 gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const ImageCreateInfo& imageCreate)
-	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool), m_Format(imageCreate.format), m_ImageAspectFlags(imageCreate.aspectFlags)
 {
 	CreateImage(imageCreate);
 	CreateImageView(imageCreate.format, imageCreate.aspectFlags);
@@ -33,15 +33,25 @@ gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const 
 
 gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, const VkImageCreateInfo& vkImageCreateInfo,
 	const VkMemoryPropertyFlags& properties, const VkFormat& format, const VkImageAspectFlags& aspectFlags)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool), m_Format(format), m_ImageAspectFlags(aspectFlags)
 {
     CreateImage(vkImageCreateInfo, properties);
     CreateImageView(format, aspectFlags);
 }
 
+gp2::Image::Image(const Device* pDevice, const CommandPool* pCommandPool, VkImage image, const VkFormat& format, const VkImageAspectFlags& aspectFlags)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool), m_Format(format), m_ImageAspectFlags(aspectFlags)
+{
+	m_Image = image;
+	m_ImageAllocation = VK_NULL_HANDLE;
+    CreateImageView(format, aspectFlags);
+}
+
 gp2::Image::~Image()
 {
-	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
-    vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, m_ImageAllocation);
+    CleanupImageView();
+	if (m_Image != VK_NULL_HANDLE && m_ImageAllocation != VK_NULL_HANDLE)
+		vmaDestroyImage(m_pDevice->GetAllocator(), m_Image, m_ImageAllocation);
 }
 
 gp2::Image::Image(Image&& other) noexcept
@@ -51,6 +61,8 @@ gp2::Image::Image(Image&& other) noexcept
 	m_ImageView = other.m_ImageView;
 	m_pDevice = other.m_pDevice;
 	m_pCommandPool = other.m_pCommandPool;
+	m_Format = other.m_Format;
+	m_ImageAspectFlags = other.m_ImageAspectFlags;
 
 	other.m_Image = VK_NULL_HANDLE;
 	other.m_ImageAllocation = VK_NULL_HANDLE;
@@ -64,6 +76,9 @@ gp2::Image& gp2::Image::operator=(Image&& other) noexcept
     m_ImageView = other.m_ImageView;
     m_pDevice = other.m_pDevice;
     m_pCommandPool = other.m_pCommandPool;
+	m_Format = other.m_Format;
+	m_ImageAspectFlags = other.m_ImageAspectFlags;
+
 
     other.m_Image = VK_NULL_HANDLE;
     other.m_ImageAllocation = VK_NULL_HANDLE;
@@ -73,9 +88,68 @@ gp2::Image& gp2::Image::operator=(Image&& other) noexcept
 }
 
 
-void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout) const
+void gp2::Image::CleanupImageView()
 {
-    VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
+	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
+	m_ImageView = VK_NULL_HANDLE;
+}
+
+//void gp2::Image::RecreateImageView()
+//{
+//    CleanupImageView();
+//	CreateImageView(m_Format, m_ImageAspectFlags);
+//}
+
+void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout newLayout)
+{
+	TransitionImageLayout(commandBuffer, format, m_ImageLayout, newLayout);
+}
+
+void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout)
+{
+    VkAccessFlags srcAccessMask;
+	VkAccessFlags dstAccessMask;
+
+    VkPipelineStageFlags sourceStage;
+    VkPipelineStageFlags destinationStage;
+
+    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
+        srcAccessMask = 0;
+    	dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+    {
+        srcAccessMask = 0;
+        dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    }
+    else
+    {
+        throw std::invalid_argument("unsupported layout transition!");
+    }
+
+    TransitionImageLayout(commandBuffer, format, oldLayout, newLayout, srcAccessMask, dstAccessMask, sourceStage, destinationStage);
+}
+
+void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
+	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+{
+
+	m_ImageLayout = newLayout;
 
     VkImageMemoryBarrier barrier{};
     barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -90,37 +164,8 @@ void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout,
     barrier.subresourceRange.baseArrayLayer = 0;
     barrier.subresourceRange.layerCount = 1;
 
-    VkPipelineStageFlags sourceStage;
-    VkPipelineStageFlags destinationStage;
-
-    if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-    }
-    else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
-    {
-        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-        destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-    }
-    else if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
-    {
-        barrier.srcAccessMask = 0;
-        barrier.dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-        sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-        destinationStage = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-    }
-    else
-    {
-        throw std::invalid_argument("unsupported layout transition!");
-    }
+	barrier.srcAccessMask = srcAccessMask;
+	barrier.dstAccessMask = dstAccessMask;
 
     if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
     {
@@ -146,7 +191,8 @@ void gp2::Image::TransitionImageLayout(VkFormat format, VkImageLayout oldLayout,
         1, &barrier
     );
 
-    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
+
+
 }
 
 void gp2::Image::CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height) const
@@ -209,6 +255,7 @@ void gp2::Image::CreateImage(const VkImageCreateInfo& imageCreateInfo, const VkM
     VmaAllocationCreateInfo allocInfo{};
     allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
     allocInfo.requiredFlags = properties;
+	m_ImageLayout = imageCreateInfo.initialLayout;
 
     vmaCreateImage(m_pDevice->GetAllocator(), &imageCreateInfo, &allocInfo, &m_Image, &m_ImageAllocation, nullptr);
 }

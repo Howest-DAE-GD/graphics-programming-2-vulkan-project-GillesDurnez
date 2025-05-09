@@ -37,7 +37,7 @@ namespace gp2
 
 	private:
         // Setup
-		void CreateFrameBuffers();
+		//void CreateFrameBuffers();
 		void CreateTextureSampler();
         void CreateUniformBuffers();
         void CreateDescriptorPool();
@@ -45,12 +45,12 @@ namespace gp2
         void CreateSyncObjects();
 
         // Cleanup
-        void CleanupSwapChain() const;
+        //void CleanupSwapChain() const;
 
         // Per Frame
         void RecreateSwapChain();
         void UpdateUniformBuffer(uint32_t currentImage) const;
-        void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const;
+        void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
 
 
         Window m_Window{};
@@ -60,15 +60,15 @@ namespace gp2
 
         SwapChain m_SwapChain{ &m_Window, &m_Device, &m_CommandPool };
 
-        RenderPass m_RenderPass{ &m_Device, &m_SwapChain };
-        Pipeline m_Pipeline{ &m_Device, &m_SwapChain ,&m_RenderPass, "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
+        //RenderPass m_RenderPass{ &m_Device, &m_SwapChain };
+        Pipeline m_Pipeline{ &m_Device, &m_SwapChain , "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
 
         // Todo move outside of renderer
 		Scene m_Scene{};
 		Camera m_Camera{ &m_Window,  m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height),{ 0.f, 0.f, 0.f }, 45.f, .1f, 100.f };
 
         // Renderer
-        std::vector<VkFramebuffer> m_SwapChainFramebuffers;
+        //std::vector<VkFramebuffer> m_SwapChainFramebuffers;
 
         std::vector<VkSemaphore> m_ImageAvailableSemaphores;
         std::vector<VkSemaphore> m_RenderFinishedSemaphores;

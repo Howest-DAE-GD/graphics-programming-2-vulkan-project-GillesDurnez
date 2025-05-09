@@ -1,4 +1,5 @@
 #pragma once
+#include <iostream>
 #include <optional>
 #include <vulkan/vulkan.h>
 
@@ -21,6 +22,32 @@ namespace gp2
 			{
 				return graphicsFamily.has_value() && presentFamily.has_value();
 			}
+		};
+
+		class DeviceDebugger
+		{
+		public:
+			DeviceDebugger(VkDevice pDevice) : m_pDevice(pDevice) {}
+
+			void SetDebugName(uint64_t object ,const std::string& name, VkObjectType objectType) const
+			{
+				VkDebugUtilsObjectNameInfoEXT nameInfo{};
+				nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
+				nameInfo.objectType = objectType;
+				nameInfo.objectHandle = object;
+				nameInfo.pObjectName = name.c_str();
+
+				VkResult result = vkSetDebugUtilsObjectNameEXT(m_pDevice, &nameInfo);
+				if (result != VK_SUCCESS) 
+				{
+					// Handle error (rare), e.g. log or assert
+					std::cout << "Failed to set debug name for object: " << name << std::endl;
+				}
+			}
+
+		private:
+			VkDevice m_pDevice;
+			PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>( vkGetDeviceProcAddr(m_pDevice, "vkSetDebugUtilsObjectNameEXT")	);
 		};
 
 		struct SwapChainSupportDetails
@@ -48,11 +75,14 @@ namespace gp2
 		VkQueue GetGraphicsQueue() const { return m_GraphicsQueue; }
 		VkQueue GetPresentQueue() const { return m_PresentQueue; }
 
+		const DeviceDebugger& GetDebugger() const { return *m_pDebugger; }
+
 		VmaAllocator GetAllocator() const { return m_Allocator; }
 
 		static bool HasStencilComponent(VkFormat format);
 		bool CheckDeviceExtensionSupport(VkPhysicalDevice device) const;
-		bool IsDeviceSuitable(VkPhysicalDevice device) const;
+		int RateDeviceSuitability(VkPhysicalDevice device) const;
+
 		QueueFamilyIndices FindQueueFamilies(VkPhysicalDevice device) const;
 		QueueFamilyIndices FindQueueFamilies() const;
 
@@ -77,6 +107,8 @@ namespace gp2
 
 		const std::vector<const char*> m_ValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 		const std::vector<const char*> m_DeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
+		DeviceDebugger* m_pDebugger{};
 
 	};
 }

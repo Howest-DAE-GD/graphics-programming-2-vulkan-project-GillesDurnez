@@ -8,7 +8,7 @@ gp2::VkRenderer::VkRenderer()
     m_Scene.AddTexture(new Texture{ &m_Device, &m_CommandPool, "textures/viking_room.png" });
     m_Scene.AddModel(new Model{ &m_Device, &m_CommandPool, "models/viking_room.obj" });
 
-    CreateFrameBuffers();
+    //CreateFrameBuffers();
     CreateTextureSampler();
     CreateUniformBuffers();
     CreateDescriptorPool();
@@ -19,7 +19,7 @@ gp2::VkRenderer::VkRenderer()
 gp2::VkRenderer::~VkRenderer()
 {
     vkDeviceWaitIdle(m_Device.GetLogicalDevice());
-    CleanupSwapChain();
+    //CleanupSwapChain();
 
     vkDestroySampler(m_Device.GetLogicalDevice(), m_TextureSampler, nullptr);
 
@@ -112,29 +112,30 @@ void gp2::VkRenderer::RenderFrame()
     m_CurrentFrame = (m_CurrentFrame + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
-void gp2::VkRenderer::CreateFrameBuffers()
-{
-    m_SwapChainFramebuffers.resize(m_SwapChain.GetImageViews().size());
-
-    for (size_t i = 0; i < m_SwapChain.GetImageViews().size(); i++)
-    {
-        std::array<VkImageView, 2> attachments = { m_SwapChain.GetImageViews()[i], m_SwapChain.GetDepthImage()->GetImageView() };
-
-        VkFramebufferCreateInfo framebufferInfo{};
-        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass = m_RenderPass.GetRenderPass();
-        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-        framebufferInfo.pAttachments = attachments.data();
-        framebufferInfo.width = m_SwapChain.GetSwapChainExtent().width;
-        framebufferInfo.height = m_SwapChain.GetSwapChainExtent().height;
-        framebufferInfo.layers = 1;
-
-        if (vkCreateFramebuffer(m_Device.GetLogicalDevice(), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
-        {
-            throw std::runtime_error("Failed to create framebuffer!");
-        }
-    }
-}
+//void gp2::VkRenderer::CreateFrameBuffers()
+//{
+//    m_SwapChainFramebuffers.resize(m_SwapChain.GetImageViews().size());
+//
+//    for (size_t i = 0; i < m_SwapChain.GetImageViews().size(); i++)
+//    {
+//        std::array<VkImageView, 2> attachments = { m_SwapChain.GetImageViews()[i], m_SwapChain.GetDepthImage()->GetImageView() };
+//
+//        VkFramebufferCreateInfo framebufferInfo{};
+//        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+//        framebufferInfo.renderPass = VK_NULL_HANDLE;
+//        //framebufferInfo.renderPass = m_RenderPass.GetRenderPass();
+//        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
+//        framebufferInfo.pAttachments = attachments.data();
+//        framebufferInfo.width = m_SwapChain.GetSwapChainExtent().width;
+//        framebufferInfo.height = m_SwapChain.GetSwapChainExtent().height;
+//        framebufferInfo.layers = 1;
+//
+//        if (vkCreateFramebuffer(m_Device.GetLogicalDevice(), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
+//        {
+//            throw std::runtime_error("Failed to create framebuffer!");
+//        }
+//    }
+//}
 
 void gp2::VkRenderer::CreateTextureSampler()
 {
@@ -279,20 +280,20 @@ void gp2::VkRenderer::CreateSyncObjects()
     }
 }
 
-void gp2::VkRenderer::CleanupSwapChain() const
-{
-    for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
-    {
-        vkDestroyFramebuffer(m_Device.GetLogicalDevice(), m_SwapChainFramebuffers[i], nullptr);
-    }
-}
+//void gp2::VkRenderer::CleanupSwapChain() const
+//{
+//    for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
+//    {
+//        vkDestroyFramebuffer(m_Device.GetLogicalDevice(), m_SwapChainFramebuffers[i], nullptr);
+//    }
+//}
 
 void gp2::VkRenderer::RecreateSwapChain()
 {
     m_SwapChain.RecreateSwapChain();
-    CleanupSwapChain();
+    //CleanupSwapChain();
 
-    CreateFrameBuffers();
+    //CreateFrameBuffers();
     m_Camera.aspectRatio = m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height);
 }
 
@@ -315,7 +316,7 @@ void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     //memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
 
-void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) const
+void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
 {
     VkCommandBufferBeginInfo beginInfo{};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -327,25 +328,38 @@ void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         throw std::runtime_error("Failed to begin recording command buffer!");
     }
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_RenderPass.GetRenderPass();
-    renderPassInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
+	m_SwapChain.GetDepthImage()->TransitionImageLayout(commandBuffer, m_SwapChain.GetDepthImage()->GetFormat(), m_SwapChain.GetDepthImage()->GetImageLayout(),VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE,VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
+	m_SwapChain.GetImages()[m_CurrentFrame].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[m_CurrentFrame].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = m_SwapChain.GetSwapChainExtent();
+    VkRenderingAttachmentInfo colorAttachment = {};
+	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	colorAttachment.imageView = m_SwapChain.GetImages()[m_CurrentFrame].GetImageView();
+	colorAttachment.imageLayout = m_SwapChain.GetImages()[m_CurrentFrame].GetImageLayout();
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    colorAttachment.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
-    std::array<VkClearValue, 2> clearValues{};
-    clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    clearValues[1].depthStencil = { 1.0f, 0 };
+	VkRenderingAttachmentInfo depthAttachment = {};
+	depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+	depthAttachment.imageView = m_SwapChain.GetDepthImage()->GetImageView();
+	depthAttachment.imageLayout = m_SwapChain.GetDepthImage()->GetImageLayout();
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
 
-    renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    renderPassInfo.pClearValues = clearValues.data();
+	VkRenderingInfo renderInfo{};
+	renderInfo.sType = VK_STRUCTURE_TYPE_RENDERING_INFO;
+	renderInfo.renderArea = VkRect2D{ { 0, 0 }, m_SwapChain.GetSwapChainExtent() };
+	renderInfo.layerCount = 1;
+	renderInfo.colorAttachmentCount = 1;
+	renderInfo.pColorAttachments = &colorAttachment;
+	renderInfo.pDepthAttachment = &depthAttachment;
+	renderInfo.pStencilAttachment = nullptr;
 
-    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    //VkCommandBuffer cmndBuffer =  m_CommandPool.BeginSingleTimeCommands();
+    vkCmdBeginRendering(commandBuffer, &renderInfo);
     {
         vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
-
         VkViewport viewport{};
         viewport.x = 0.0f;
         viewport.y = 0.0f;
@@ -367,7 +381,56 @@ void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
         vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Scene.GetModel(0)->GetIndices().size()), 1, 0, 0, 0);
     }
-    vkCmdEndRenderPass(commandBuffer);
+    vkCmdEndRendering(commandBuffer);
+	//m_CommandPool.EndSingleTimeCommands(cmndBuffer);
+
+    //VkCommandBuffer commandBuffer = m_CommandPool.BeginSingleTimeCommands();
+    m_SwapChain.GetImages()[m_CurrentFrame].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[m_CurrentFrame].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+    //m_CommandPool.EndSingleTimeCommands(commandBuffer);
+
+
+    //VkRenderPassBeginInfo renderPassInfo{};
+    //renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    //renderPassInfo.renderPass = VK_NULL_HANDLE;
+    ////renderPassInfo.renderPass = m_RenderPass.GetRenderPass();
+    //renderPassInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
+
+    //renderPassInfo.renderArea.offset = { 0, 0 };
+    //renderPassInfo.renderArea.extent = m_SwapChain.GetSwapChainExtent();
+
+    //std::array<VkClearValue, 2> clearValues{};
+    //clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
+    //clearValues[1].depthStencil = { 1.0f, 0 };
+
+    //renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
+    //renderPassInfo.pClearValues = clearValues.data();
+
+    //vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    //{
+    //    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
+
+    //    VkViewport viewport{};
+    //    viewport.x = 0.0f;
+    //    viewport.y = 0.0f;
+    //    viewport.width = static_cast<float>(m_SwapChain.GetSwapChainExtent().width);
+    //    viewport.height = static_cast<float>(m_SwapChain.GetSwapChainExtent().height);
+    //    viewport.minDepth = 0.0f;
+    //    viewport.maxDepth = 1.0f;
+    //    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+    //    VkRect2D scissor{};
+    //    scissor.offset = { 0, 0 };
+    //    scissor.extent = m_SwapChain.GetSwapChainExtent();
+    //    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+    //    VkBuffer vertexBuffers[] = { m_Scene.GetModel(0)->GetVertexBuffer()->GetBuffer() };
+    //    VkDeviceSize offsets[] = { 0 };
+    //    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+    //    vkCmdBindIndexBuffer(commandBuffer, m_Scene.GetModel(0)->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+    //    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
+    //    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Scene.GetModel(0)->GetIndices().size()), 1, 0, 0, 0);
+    //}
+    //vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
     {
