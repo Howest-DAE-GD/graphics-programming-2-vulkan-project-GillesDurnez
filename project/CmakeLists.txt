@@ -30,6 +30,16 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(VMA)
 
+# Assimp
+FetchContent_Declare(
+  assimp
+  GIT_REPOSITORY https://github.com/assimp/assimp.git
+  GIT_TAG        v5.2.5
+  GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(assimp)
+
+
 set( SRC_FILES
     "src/main.cpp"
     "src/Renderer/vkRenderer.cpp"
@@ -54,8 +64,10 @@ add_executable(${TARGET_NAME} ${SRC_FILES})
 
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(${TARGET_NAME} PUBLIC ${vma_SOURCE_DIR}/include)
+target_include_directories(${TARGET_NAME} PRIVATE ${assimp_SOURCE_DIR}/include)
 
-target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Vulkan glfw glm::glm)
+
+target_link_libraries(${TARGET_NAME} PRIVATE Vulkan::Vulkan glfw glm::glm assimp::assimp)
 # Copying over the assets
 # add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 #    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
@@ -126,3 +138,52 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
             $<TARGET_FILE_DIR:${TARGET_NAME}>/models
     COMMENT "Copying models to output directory"
 )
+
+
+# ----------------------------------------------
+# Download & extract full Sponza ZIP into scenes/
+# ----------------------------------------------
+
+include(ExternalProject)
+
+#set(SCENE_DIR ${CMAKE_BINARY_DIR}/scenes/Sponza)
+#set(SPONZA_URL "https://github.com/KhronosGroup/glTF-Sample-Assets/archive/refs/heads/main.zip")
+#
+#ExternalProject_Add(SponzaScene
+#    URL ${SPONZA_URL}
+#    DOWNLOAD_NAME sponza.zip
+#    DOWNLOAD_DIR ${CMAKE_BINARY_DIR}
+#    SOURCE_DIR ${CMAKE_BINARY_DIR}/SponzaScene-src
+#    CONFIGURE_COMMAND ""
+#    BUILD_COMMAND ""
+#    INSTALL_COMMAND ${CMAKE_COMMAND} -E make_directory ${SCENE_DIR}
+#                    COMMAND ${CMAKE_COMMAND} -E copy_directory
+#                        ${CMAKE_BINARY_DIR}/SponzaScene-src/Models/Sponza/glTF
+#                        ${SCENE_DIR}
+#    UPDATE_COMMAND ""
+#    LOG_DOWNLOAD ON
+#)
+
+set(SCENE_DIR ${CMAKE_BINARY_DIR}/scenes/Sponza)
+set(SPONZA_URL "https://github.com/KhronosGroup/glTF-Sample-Assets/archive/refs/heads/main.zip")
+set(SPONZA_ZIP ${CMAKE_BINARY_DIR}/sponza.zip)
+
+ExternalProject_Add(SponzaScene
+    URL ${SPONZA_URL}
+    DOWNLOAD_NAME sponza.zip
+    DOWNLOAD_DIR ${CMAKE_BINARY_DIR}
+    SOURCE_DIR ${CMAKE_BINARY_DIR}/SponzaScene-src
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND
+        ${CMAKE_COMMAND} -E make_directory ${SCENE_DIR}
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_BINARY_DIR}/SponzaScene-src/Models/Sponza/glTF
+            ${SCENE_DIR}
+        COMMAND ${CMAKE_COMMAND} -E remove ${SPONZA_ZIP}
+    UPDATE_COMMAND ""
+    LOG_DOWNLOAD ON
+)
+
+
+add_dependencies(${TARGET_NAME} SponzaScene)

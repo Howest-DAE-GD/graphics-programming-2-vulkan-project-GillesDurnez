@@ -116,9 +116,20 @@ int gp2::Device::RateDeviceSuitability(VkPhysicalDevice device) const
     VkPhysicalDeviceVulkan13Features vulkan13Features;
     VkPhysicalDeviceFeatures2 features2;
 
+    VkPhysicalDeviceDescriptorIndexingFeatures indexFeatures{
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+        .pNext = nullptr,
+        .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+        .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+        //.descriptorBindingPartiallyBound = VK_TRUE,
+
+        .descriptorBindingVariableDescriptorCount = VK_TRUE,
+        .runtimeDescriptorArray = VK_FALSE,
+    };
+
     vulkan13Features = {
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-	    .pNext = NULL,
+	    .pNext = &indexFeatures,
 		.synchronization2 = VK_TRUE,
         .dynamicRendering = VK_TRUE,
     };

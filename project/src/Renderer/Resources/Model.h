@@ -10,6 +10,10 @@
 
 #include "Texture.h"
 #include "../Buffer.h"
+
+#include "assimp/Importer.hpp"
+#include "assimp/mesh.h"
+
 //#define TINYOBJLOADER_IMPLEMENTATION
 //#include <tiny_obj_loader.h>
 //#include <unordered_map>
@@ -20,7 +24,7 @@ namespace gp2
 	struct Vertex
 	{
 		glm::vec3 pos;
-	    glm::vec3 color;
+	    glm::vec3 normal;
 	    glm::vec2 texCoord;
 
 	    static VkVertexInputBindingDescription getBindingDescription()
@@ -46,7 +50,7 @@ namespace gp2
 	        attributeDescriptions[1].binding = 0;
 	        attributeDescriptions[1].location = 1;
 	        attributeDescriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-	        attributeDescriptions[1].offset = offsetof(Vertex, color);
+	        attributeDescriptions[1].offset = offsetof(Vertex, normal);
 
 	        attributeDescriptions[2].binding = 0;
 	        attributeDescriptions[2].location = 2;
@@ -58,7 +62,7 @@ namespace gp2
 
 	    bool operator==(const Vertex& other) const
 		{
-	        return pos == other.pos && color == other.color && texCoord == other.texCoord;
+	        return pos == other.pos && normal == other.normal && texCoord == other.texCoord;
 	    }
 	};
 
@@ -66,6 +70,7 @@ namespace gp2
 	{
 	public:
 		Model() = default;
+		Model(Device* pDevice, CommandPool* pCommandPool, aiMesh* mesh);
 
 		Model(Device* pDevice, CommandPool* pCommandPool, const std::string& path);
 		~Model();
@@ -82,6 +87,7 @@ namespace gp2
 		const Buffer* GetIndexBuffer() const { return m_IndexBuffer; }
 
 		void AddTexture(uint32_t index) { m_TextureIndexes.push_back(index); }
+		uint32_t GetTexture() const { return m_TextureIndexes[0]; }
 
 	private:
         Device* m_pDevice;
@@ -95,9 +101,10 @@ namespace gp2
         Buffer* m_VertexBuffer;
         Buffer* m_IndexBuffer;
 
-        void LoadModel(const std::string& path);
+        //void LoadModel(const std::string& path);
         void CreateVertexBuffer();
         void CreateIndexBuffer();
+
 	};
 }
 

@@ -1,7 +1,7 @@
 #include "Model.h"
-
-#define TINYOBJLOADER_IMPLEMENTATION
-#include <tiny_obj_loader.h>
+//
+//#define TINYOBJLOADER_IMPLEMENTATION
+//#include <tiny_obj_loader.h>
 
 #include <unordered_map>
 
@@ -19,16 +19,73 @@ namespace std
         size_t operator()(gp2::Vertex const& vertex) const
         {
             return ((hash<glm::vec3>()(vertex.pos) ^
-                (hash<glm::vec3>()(vertex.color) << 1)) >> 1) ^
+                (hash<glm::vec3>()(vertex.normal) << 1)) >> 1) ^
                 (hash<glm::vec2>()(vertex.texCoord) << 1);
         }
     };
 }
 
+gp2::Model::Model(Device* pDevice, CommandPool* pCommandPool, aiMesh* mesh)
+	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
+{
+	m_Vertices.reserve(mesh->mNumVertices);
+	m_Indices.reserve(mesh->mNumFaces * 3);
+
+	for (uint32_t i = 0; i < mesh->mNumVertices; i++)
+	{
+
+		Vertex vertex{};
+		vertex.pos = {
+			mesh->mVertices[i].x,
+			mesh->mVertices[i].y,
+			mesh->mVertices[i].z
+		};
+
+        // NORMALS
+        if (mesh->HasNormals()) {
+            vertex.normal = {
+                mesh->mNormals[i].x,
+                mesh->mNormals[i].y,
+                mesh->mNormals[i].z
+            };
+		}
+		else
+		{
+			vertex.normal = { 1.0f, 1.0f, 1.0f };
+		}
+
+		// UV COORDINATES
+		if (mesh->HasTextureCoords(0))
+		{
+			vertex.texCoord = {
+				mesh->mTextureCoords[0][i].x,
+				mesh->mTextureCoords[0][i].y
+			};
+		}
+		else
+		{
+			vertex.texCoord = { 0.0f, 0.0f };
+		}
+
+		m_Vertices.push_back(vertex);
+	}
+
+	for (uint32_t faceIdx = 0; faceIdx < mesh->mNumFaces; faceIdx++)
+	{
+		for (uint32_t indeceIdx = 0; indeceIdx < mesh->mFaces[faceIdx].mNumIndices; indeceIdx++)
+		{
+			m_Indices.push_back(mesh->mFaces[faceIdx].mIndices[indeceIdx]);
+		}
+	}
+
+    CreateVertexBuffer();
+    CreateIndexBuffer();
+}
+
 gp2::Model::Model(Device* pDevice, CommandPool* pCommandPool, const std::string& path)
 	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
-	LoadModel(path);
+	//LoadModel(path);
 	CreateVertexBuffer();
 	CreateIndexBuffer();
 }
@@ -72,50 +129,50 @@ gp2::Model& gp2::Model::operator=(Model&& other) noexcept
     return *this;
 }
 
-void gp2::Model::LoadModel(const std::string& path)
-{
-    tinyobj::attrib_t attrib;
-    std::vector<tinyobj::shape_t> shapes;
-    std::vector<tinyobj::material_t> materials;
-    std::string warn, err;
-
-    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
-    {
-        throw std::runtime_error(warn + err);
-    }
-
-    std::unordered_map<gp2::Vertex, uint32_t> uniqueVertices{};
-
-
-    for (const auto& shape : shapes)
-    {
-        for (const auto& index : shape.mesh.indices)
-        {
-            gp2::Vertex vertex{};
-
-            vertex.pos = {
-                attrib.vertices[3 * index.vertex_index + 0],
-                attrib.vertices[3 * index.vertex_index + 1],
-                attrib.vertices[3 * index.vertex_index + 2]
-            };
-
-            vertex.texCoord = {
-                attrib.texcoords[2 * index.texcoord_index + 0],
-                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-            };
-
-            vertex.color = { 1.0f, 1.0f, 1.0f };
-
-            if (uniqueVertices.count(vertex) == 0)
-            {
-                uniqueVertices[vertex] = static_cast<uint32_t>(m_Vertices.size());
-                m_Vertices.push_back(vertex);
-            }
-
-            m_Indices.push_back(uniqueVertices[vertex]);
-        }
-    }
-}
+//void gp2::Model::LoadModel(const std::string& path)
+//{
+//    tinyobj::attrib_t attrib;
+//    std::vector<tinyobj::shape_t> shapes;
+//    std::vector<tinyobj::material_t> materials;
+//    std::string warn, err;
+//
+//    if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
+//    {
+//        throw std::runtime_error(warn + err);
+//    }
+//
+//    std::unordered_map<gp2::Vertex, uint32_t> uniqueVertices{};
+//
+//
+//    for (const auto& shape : shapes)
+//    {
+//        for (const auto& index : shape.mesh.indices)
+//        {
+//            gp2::Vertex vertex{};
+//
+//            vertex.pos = {
+//                attrib.vertices[3 * index.vertex_index + 0],
+//                attrib.vertices[3 * index.vertex_index + 1],
+//                attrib.vertices[3 * index.vertex_index + 2]
+//            };
+//
+//            vertex.texCoord = {
+//                attrib.texcoords[2 * index.texcoord_index + 0],
+//                1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
+//            };
+//
+//            vertex.normal = { 1.0f, 1.0f, 1.0f };
+//
+//            if (uniqueVertices.count(vertex) == 0)
+//            {
+//                uniqueVertices[vertex] = static_cast<uint32_t>(m_Vertices.size());
+//                m_Vertices.push_back(vertex);
+//            }
+//
+//            m_Indices.push_back(uniqueVertices[vertex]);
+//        }
+//    }
+//}
 
 void gp2::Model::CreateVertexBuffer()
 {

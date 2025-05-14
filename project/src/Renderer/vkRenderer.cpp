@@ -5,10 +5,8 @@
 
 gp2::VkRenderer::VkRenderer()
 {
-    m_Scene.AddTexture(new Texture{ &m_Device, &m_CommandPool, "textures/viking_room.png" });
-    m_Scene.AddModel(new Model{ &m_Device, &m_CommandPool, "models/viking_room.obj" });
+    m_Scene.LoadScene(&m_Device, &m_CommandPool, "../scenes/Sponza/Sponza.gltf");
 
-    //CreateFrameBuffers();
     CreateTextureSampler();
     CreateUniformBuffers();
     CreateDescriptorPool();
@@ -23,11 +21,6 @@ gp2::VkRenderer::~VkRenderer()
 
     vkDestroySampler(m_Device.GetLogicalDevice(), m_TextureSampler, nullptr);
 
-    //for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
-    //{
-    //    vkDestroyBuffer(m_Device.GetLogicalDevice(), m_UniformBuffers[i], nullptr);
-    //    vkFreeMemory(m_Device.GetLogicalDevice(), m_UniformBuffersMemory[i], nullptr);
-    //}
 
     vkDestroyDescriptorPool(m_Device.GetLogicalDevice(), m_DescriptorPool, nullptr);
 
@@ -112,31 +105,6 @@ void gp2::VkRenderer::RenderFrame()
     m_CurrentFrame = (m_CurrentFrame + 1) % SwapChain::MAX_FRAMES_IN_FLIGHT;
 }
 
-//void gp2::VkRenderer::CreateFrameBuffers()
-//{
-//    m_SwapChainFramebuffers.resize(m_SwapChain.GetImageViews().size());
-//
-//    for (size_t i = 0; i < m_SwapChain.GetImageViews().size(); i++)
-//    {
-//        std::array<VkImageView, 2> attachments = { m_SwapChain.GetImageViews()[i], m_SwapChain.GetDepthImage()->GetImageView() };
-//
-//        VkFramebufferCreateInfo framebufferInfo{};
-//        framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-//        framebufferInfo.renderPass = VK_NULL_HANDLE;
-//        //framebufferInfo.renderPass = m_RenderPass.GetRenderPass();
-//        framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-//        framebufferInfo.pAttachments = attachments.data();
-//        framebufferInfo.width = m_SwapChain.GetSwapChainExtent().width;
-//        framebufferInfo.height = m_SwapChain.GetSwapChainExtent().height;
-//        framebufferInfo.layers = 1;
-//
-//        if (vkCreateFramebuffer(m_Device.GetLogicalDevice(), &framebufferInfo, nullptr, &m_SwapChainFramebuffers[i]) != VK_SUCCESS)
-//        {
-//            throw std::runtime_error("Failed to create framebuffer!");
-//        }
-//    }
-//}
-
 void gp2::VkRenderer::CreateTextureSampler()
 {
     VkSamplerCreateInfo samplerInfo{};
@@ -190,69 +158,157 @@ void gp2::VkRenderer::CreateDescriptorPool()
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     poolSizes[0].descriptorCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+
     poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[1].descriptorCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+    poolSizes[1].descriptorCount = Pipeline::MAX_TEXTURES;
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
-    poolInfo.maxSets = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
 
-    if (vkCreateDescriptorPool(m_Device.GetLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
+    poolInfo.maxSets = 1;
+
+    if (vkCreateDescriptorPool(
+        m_Device.GetLogicalDevice(),
+        &poolInfo,
+        nullptr,
+        &m_DescriptorPool) != VK_SUCCESS)
     {
         throw std::runtime_error("failed to create descriptor pool!");
     }
+    //std::array<VkDescriptorPoolSize, 2> poolSizes{};
+    //poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //poolSizes[0].descriptorCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+    //poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //poolSizes[1].descriptorCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+
+    //VkDescriptorPoolCreateInfo poolInfo{};
+    //poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    //poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
+    //poolInfo.pPoolSizes = poolSizes.data();
+    //poolInfo.maxSets = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+
+    //if (vkCreateDescriptorPool(m_Device.GetLogicalDevice(), &poolInfo, nullptr, &m_DescriptorPool) != VK_SUCCESS)
+    //{
+    //    throw std::runtime_error("failed to create descriptor pool!");
+    //}
 }
 
 void gp2::VkRenderer::CreateDescriptorSets()
 {
-    std::vector<VkDescriptorSetLayout> layouts(SwapChain::MAX_FRAMES_IN_FLIGHT, m_Pipeline.GetDescriptorSetLayout());
+    uint32_t textureCount = static_cast<uint32_t>(m_Scene.GetTextures().size());
+
+    VkDescriptorSetLayout layout = m_Pipeline.GetDescriptorSetLayout();
+
+    VkDescriptorSetVariableDescriptorCountAllocateInfo countInfo{};
+    countInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+    countInfo.descriptorSetCount = 1;
+    countInfo.pDescriptorCounts = &textureCount;
+
     VkDescriptorSetAllocateInfo allocInfo{};
     allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.pNext = &countInfo;  // Chain the variable count info
     allocInfo.descriptorPool = m_DescriptorPool;
-    allocInfo.descriptorSetCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
-    allocInfo.pSetLayouts = layouts.data();
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = &layout;
 
-    m_DescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
-    if (vkAllocateDescriptorSets(m_Device.GetLogicalDevice(), &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
+    VkDescriptorSet descriptorSet;
+    if (vkAllocateDescriptorSets(m_Device.GetLogicalDevice(), &allocInfo, &descriptorSet) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to allocate descriptor sets!");
+        throw std::runtime_error("failed to allocate bindless descriptor set!");
+    }
+    m_DescriptorSets = { descriptorSet };  // Now just one set, shared
+
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = m_UniformBuffers[0].GetBuffer();  // Single or global UBO
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(UniformBufferObject);
+
+    VkWriteDescriptorSet uboWrite{};
+    uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    uboWrite.dstSet = descriptorSet;
+    uboWrite.dstBinding = 0;
+    uboWrite.dstArrayElement = 0;
+    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboWrite.descriptorCount = 1;
+    uboWrite.pBufferInfo = &bufferInfo;
+
+    std::vector<VkDescriptorImageInfo> imageInfos(textureCount);
+    for (uint32_t i = 0; i < textureCount; ++i)
+    {
+        imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        imageInfos[i].imageView = m_Scene.GetTexture(i)->GetTextureImage()->GetImageView();
+        imageInfos[i].sampler = m_TextureSampler;
     }
 
-    for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
-    {
-        VkDescriptorBufferInfo bufferInfo{};
-        bufferInfo.buffer = m_UniformBuffers[i].GetBuffer();
-        bufferInfo.offset = 0;
-        bufferInfo.range = sizeof(UniformBufferObject);
+    VkWriteDescriptorSet imageWrite{};
+    imageWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    imageWrite.dstSet = descriptorSet;
+    imageWrite.dstBinding = 1;
+    imageWrite.dstArrayElement = 0;
+    imageWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    imageWrite.descriptorCount = textureCount;
+    imageWrite.pImageInfo = imageInfos.data();
 
-        VkDescriptorImageInfo imageInfo{};
-        imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        imageInfo.imageView = m_Scene.GetTexture(0)->GetTextureImage()->GetImageView();
-        imageInfo.sampler = m_TextureSampler;
+    std::array<VkWriteDescriptorSet, 2> descriptorWrites = { uboWrite, imageWrite };
+
+    vkUpdateDescriptorSets(
+        m_Device.GetLogicalDevice(),
+        static_cast<uint32_t>(descriptorWrites.size()),
+        descriptorWrites.data(),
+        0,
+        nullptr
+    );
 
 
-        std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+    //std::vector<VkDescriptorSetLayout> layouts(SwapChain::MAX_FRAMES_IN_FLIGHT, m_Pipeline.GetDescriptorSetLayout());
+    //VkDescriptorSetAllocateInfo allocInfo{};
+    //allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    //allocInfo.descriptorPool = m_DescriptorPool;
+    //allocInfo.descriptorSetCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
+    //allocInfo.pSetLayouts = layouts.data();
 
-        descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[0].dstSet = m_DescriptorSets[i];
-        descriptorWrites[0].dstBinding = 0;
-        descriptorWrites[0].dstArrayElement = 0;
-        descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descriptorWrites[0].descriptorCount = 1;
-        descriptorWrites[0].pBufferInfo = &bufferInfo;
+    //m_DescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
+    //if (vkAllocateDescriptorSets(m_Device.GetLogicalDevice(), &allocInfo, m_DescriptorSets.data()) != VK_SUCCESS)
+    //{
+    //    throw std::runtime_error("failed to allocate descriptor sets!");
+    //}
 
-        descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrites[1].dstSet = m_DescriptorSets[i];
-        descriptorWrites[1].dstBinding = 1;
-        descriptorWrites[1].dstArrayElement = 0;
-        descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descriptorWrites[1].descriptorCount = 1;
-        descriptorWrites[1].pImageInfo = &imageInfo;
+    //for (size_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; i++)
+    //{
+    //    VkDescriptorBufferInfo bufferInfo{};
+    //    bufferInfo.buffer = m_UniformBuffers[i].GetBuffer();
+    //    bufferInfo.offset = 0;
+    //    bufferInfo.range = sizeof(UniformBufferObject);
 
-        vkUpdateDescriptorSets(m_Device.GetLogicalDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-    }
+    //    VkDescriptorImageInfo imageInfo{};
+    //    imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    //    imageInfo.imageView = m_Scene.GetTexture(0)->GetTextureImage()->GetImageView();
+    //    imageInfo.sampler = m_TextureSampler;
+
+
+    //    std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+
+    //    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    descriptorWrites[0].dstSet = m_DescriptorSets[i];
+    //    descriptorWrites[0].dstBinding = 0;
+    //    descriptorWrites[0].dstArrayElement = 0;
+    //    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    //    descriptorWrites[0].descriptorCount = 1;
+    //    descriptorWrites[0].pBufferInfo = &bufferInfo;
+
+    //    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    //    descriptorWrites[1].dstSet = m_DescriptorSets[i];
+    //    descriptorWrites[1].dstBinding = 1;
+    //    descriptorWrites[1].dstArrayElement = 0;
+    //    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    //    descriptorWrites[1].descriptorCount = 1;
+    //    descriptorWrites[1].pImageInfo = &imageInfo;
+
+    //    vkUpdateDescriptorSets(m_Device.GetLogicalDevice(), static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
+    //}
 }
 
 void gp2::VkRenderer::CreateSyncObjects()
@@ -280,14 +336,6 @@ void gp2::VkRenderer::CreateSyncObjects()
     }
 }
 
-//void gp2::VkRenderer::CleanupSwapChain() const
-//{
-//    for (size_t i = 0; i < m_SwapChainFramebuffers.size(); i++)
-//    {
-//        vkDestroyFramebuffer(m_Device.GetLogicalDevice(), m_SwapChainFramebuffers[i], nullptr);
-//    }
-//}
-
 void gp2::VkRenderer::RecreateSwapChain()
 {
     m_SwapChain.RecreateSwapChain();
@@ -305,13 +353,13 @@ void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage) const
     float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     UniformBufferObject ubo{};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//ubo.model = glm::mat4(1.0f);
-    //ubo.view = m_Camera.viewMatrix;
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    //ubo.proj = m_Camera.projectionMatrix;
-	ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChain.GetSwapChainExtent().width / (float)m_SwapChain.GetSwapChainExtent().height, 0.1f, 10.0f);
-    ubo.proj[1][1] *= -1;
+    //ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	ubo.model = glm::mat4(1.0f);
+    ubo.view = m_Camera.viewMatrix;
+    //ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = m_Camera.projectionMatrix;
+	//ubo.proj = glm::perspective(glm::radians(45.0f), m_SwapChain.GetSwapChainExtent().width / (float)m_SwapChain.GetSwapChainExtent().height, 0.1f, 10.0f);
+    //ubo.proj[1][1] *= -1;
 	m_UniformBuffers[currentImage].CopyMemory(&ubo, sizeof(ubo), 0);
     //memcpy(m_UniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 }
@@ -329,12 +377,12 @@ void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_
     }
 
 	m_SwapChain.GetDepthImage()->TransitionImageLayout(commandBuffer, m_SwapChain.GetDepthImage()->GetFormat(), m_SwapChain.GetDepthImage()->GetImageLayout(),VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE,VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
-	m_SwapChain.GetImages()[m_CurrentFrame].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[m_CurrentFrame].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+	m_SwapChain.GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     VkRenderingAttachmentInfo colorAttachment = {};
 	colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-	colorAttachment.imageView = m_SwapChain.GetImages()[m_CurrentFrame].GetImageView();
-	colorAttachment.imageLayout = m_SwapChain.GetImages()[m_CurrentFrame].GetImageLayout();
+	colorAttachment.imageView = m_SwapChain.GetImages()[imageIndex].GetImageView();
+	colorAttachment.imageLayout = m_SwapChain.GetImages()[imageIndex].GetImageLayout();
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
@@ -359,78 +407,40 @@ void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_
     //VkCommandBuffer cmndBuffer =  m_CommandPool.BeginSingleTimeCommands();
     vkCmdBeginRendering(commandBuffer, &renderInfo);
     {
-        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
-        VkViewport viewport{};
-        viewport.x = 0.0f;
-        viewport.y = 0.0f;
-        viewport.width = static_cast<float>(m_SwapChain.GetSwapChainExtent().width);
-        viewport.height = static_cast<float>(m_SwapChain.GetSwapChainExtent().height);
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+        for (auto model : m_Scene.GetModels())
+        {
+	        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
+	        VkViewport viewport{};
+	        viewport.x = 0.0f;
+	        viewport.y = 0.0f;
+	        viewport.width = static_cast<float>(m_SwapChain.GetSwapChainExtent().width);
+	        viewport.height = static_cast<float>(m_SwapChain.GetSwapChainExtent().height);
+	        viewport.minDepth = 0.0f;
+	        viewport.maxDepth = 1.0f;
+	        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-        VkRect2D scissor{};
-        scissor.offset = { 0, 0 };
-        scissor.extent = m_SwapChain.GetSwapChainExtent();
-        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+	        VkRect2D scissor{};
+	        scissor.offset = { 0, 0 };
+	        scissor.extent = m_SwapChain.GetSwapChainExtent();
+	        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-        VkBuffer vertexBuffers[] = { m_Scene.GetModel(0)->GetVertexBuffer()->GetBuffer() };
-        VkDeviceSize offsets[] = { 0 };
-        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-        vkCmdBindIndexBuffer(commandBuffer, m_Scene.GetModel(0)->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
-        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Scene.GetModel(0)->GetIndices().size()), 1, 0, 0, 0);
+            uint32_t modelIdx{ model->GetTexture() };
+
+	        VkBuffer vertexBuffers[] = { model->GetVertexBuffer()->GetBuffer() };
+	        VkDeviceSize offsets[] = { 0 };
+            vkCmdPushConstants(commandBuffer, m_Pipeline.GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &modelIdx);
+	        vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
+	        vkCmdBindIndexBuffer(commandBuffer, model->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
+	        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[0], 0, nullptr);
+	        vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(model->GetIndices().size()), 1, 0, 0, 0);
+        }
     }
     vkCmdEndRendering(commandBuffer);
 	//m_CommandPool.EndSingleTimeCommands(cmndBuffer);
 
     //VkCommandBuffer commandBuffer = m_CommandPool.BeginSingleTimeCommands();
-    m_SwapChain.GetImages()[m_CurrentFrame].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[m_CurrentFrame].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+    m_SwapChain.GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
     //m_CommandPool.EndSingleTimeCommands(commandBuffer);
-
-
-    //VkRenderPassBeginInfo renderPassInfo{};
-    //renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    //renderPassInfo.renderPass = VK_NULL_HANDLE;
-    ////renderPassInfo.renderPass = m_RenderPass.GetRenderPass();
-    //renderPassInfo.framebuffer = m_SwapChainFramebuffers[imageIndex];
-
-    //renderPassInfo.renderArea.offset = { 0, 0 };
-    //renderPassInfo.renderArea.extent = m_SwapChain.GetSwapChainExtent();
-
-    //std::array<VkClearValue, 2> clearValues{};
-    //clearValues[0].color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    //clearValues[1].depthStencil = { 1.0f, 0 };
-
-    //renderPassInfo.clearValueCount = static_cast<uint32_t>(clearValues.size());
-    //renderPassInfo.pClearValues = clearValues.data();
-
-    //vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-    //{
-    //    vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
-
-    //    VkViewport viewport{};
-    //    viewport.x = 0.0f;
-    //    viewport.y = 0.0f;
-    //    viewport.width = static_cast<float>(m_SwapChain.GetSwapChainExtent().width);
-    //    viewport.height = static_cast<float>(m_SwapChain.GetSwapChainExtent().height);
-    //    viewport.minDepth = 0.0f;
-    //    viewport.maxDepth = 1.0f;
-    //    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-    //    VkRect2D scissor{};
-    //    scissor.offset = { 0, 0 };
-    //    scissor.extent = m_SwapChain.GetSwapChainExtent();
-    //    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-    //    VkBuffer vertexBuffers[] = { m_Scene.GetModel(0)->GetVertexBuffer()->GetBuffer() };
-    //    VkDeviceSize offsets[] = { 0 };
-    //    vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
-    //    vkCmdBindIndexBuffer(commandBuffer, m_Scene.GetModel(0)->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
-    //    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, &m_DescriptorSets[m_CurrentFrame], 0, nullptr);
-    //    vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_Scene.GetModel(0)->GetIndices().size()), 1, 0, 0, 0);
-    //}
-    //vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
     {

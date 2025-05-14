@@ -65,7 +65,7 @@ namespace gp2
 
         // Todo move outside of renderer
 		Scene m_Scene{};
-		Camera m_Camera{ &m_Window,  m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height),{ 0.f, 0.f, 0.f }, 45.f, .1f, 100.f };
+		Camera m_Camera{ &m_Window,  m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height),{ 0.f, 0.f, 0.f }, 45.f, .1f, 10000.f };
 
         // Renderer
         //std::vector<VkFramebuffer> m_SwapChainFramebuffers;

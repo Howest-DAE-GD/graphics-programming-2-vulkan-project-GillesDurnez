@@ -1,5 +1,10 @@
 #include "Scene.h"
 
+#include <filesystem>
+
+#include "assimp/postprocess.h"
+#include "assimp/scene.h"
+
 gp2::Scene::~Scene()
 {
 	for (auto model : m_Models)
@@ -14,4 +19,59 @@ gp2::Scene::~Scene()
 
 	m_Models.clear();
 	m_Textures.clear();
+}
+
+void gp2::Scene::LoadScene(Device* pDevice, CommandPool* pCommandPool, const std::string& path)
+{
+	const aiScene* scene = m_Importer.ReadFile(
+		path,
+		aiProcess_Triangulate |
+		aiProcess_GenSmoothNormals |
+		aiProcess_FlipUVs |
+		aiProcess_JoinIdenticalVertices
+	);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	{
+		std::cerr << "ERROR::ASSIMP::" << m_Importer.GetErrorString() << "\n";
+	}
+
+	std::filesystem::path fsDataPath{ path };
+	std::string dataPath{ fsDataPath.parent_path().string() + "/" };
+
+	ProcessNode(pDevice, pCommandPool ,scene->mRootNode, scene, dataPath);
+}
+
+void gp2::Scene::ProcessNode(Device* pDevice, CommandPool* pCommandPool, const aiNode* node, const aiScene* scene, const std::string& path)
+{
+	// Process each mesh at this node
+	for (unsigned int i = 0; i < node->mNumMeshes; i++) 
+	{
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+		Model* newModel = new Model{ pDevice, pCommandPool, mesh };
+		m_Models.push_back(newModel);
+
+		aiString tPath;
+		scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &tPath);
+
+		std::string filePath = path + tPath.C_Str();
+
+		if (m_LoadedTextures.contains(filePath))
+		{
+			newModel->AddTexture(m_LoadedTextures[filePath]);
+		}
+		else
+		{
+			m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, filePath });
+			m_LoadedTextures.insert(std::pair<std::string, uint32_t>(filePath, m_Textures.size() - 1));
+			newModel->AddTexture(m_LoadedTextures[filePath]);
+
+		}
+	}
+
+	// Then do the same for each of its children
+	for (unsigned int i = 0; i < node->mNumChildren; i++) 
+	{
+		ProcessNode(pDevice, pCommandPool, scene->mRootNode, scene, path);
+	}
 }

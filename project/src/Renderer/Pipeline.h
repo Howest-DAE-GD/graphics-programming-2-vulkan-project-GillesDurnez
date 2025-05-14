@@ -27,6 +27,7 @@ namespace gp2
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		VkPipeline GetGraphicsPipeline() const { return m_GraphicsPipeline; }
 
+		static constexpr uint32_t MAX_TEXTURES = 512;
 	private:
 
 		void CreateDescriptorSetLayout();
@@ -39,6 +40,7 @@ namespace gp2
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;
 		VkDescriptorSetLayout m_DescriptorSetLayout;
+
 
 	};
 }
