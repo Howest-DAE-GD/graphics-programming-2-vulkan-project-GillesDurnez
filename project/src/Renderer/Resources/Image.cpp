@@ -76,7 +76,7 @@ gp2::Image& gp2::Image::operator=(Image&& other) noexcept
     m_ImageView = other.m_ImageView;
     m_pDevice = other.m_pDevice;
     m_pCommandPool = other.m_pCommandPool;
-	m_Format = other.m_Format;
+	//m_Format = other.m_Format;
 	m_ImageAspectFlags = other.m_ImageAspectFlags;
 
 

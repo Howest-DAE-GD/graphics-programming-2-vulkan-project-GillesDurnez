@@ -83,13 +83,13 @@ void gp2::SwapChain::CreateSwapChain()
 	std::vector<VkImage> swapChainImages;
 
     vkGetSwapchainImagesKHR(m_pDevice->GetLogicalDevice(), m_SwapChain, &imageCount, nullptr);
-    m_SwapChainImages.resize(imageCount);
+    m_SwapChainImages.clear();
 	swapChainImages.resize(imageCount);
     vkGetSwapchainImagesKHR(m_pDevice->GetLogicalDevice(), m_SwapChain, &imageCount, swapChainImages.data());
 
 	for (size_t i = 0; i < swapChainImages.size(); i++)
 	{
-		m_SwapChainImages[i] = Image{ m_pDevice, m_pCommandPool, swapChainImages[i], surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT };
+		m_SwapChainImages.emplace_back(Image{ m_pDevice, m_pCommandPool, swapChainImages[i], surfaceFormat.format, VK_IMAGE_ASPECT_COLOR_BIT });
 		m_pDevice->GetDebugger().SetDebugName(reinterpret_cast<uint64_t>(m_SwapChainImages[i].GetImage()), "SwapChain Image ", VK_OBJECT_TYPE_IMAGE);
     }
 
