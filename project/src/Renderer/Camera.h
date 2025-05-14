@@ -64,7 +64,7 @@ namespace gp2
 
 		void CalculateViewMatrix()
 		{
-			viewMatrix = glm::lookAt(origin, origin + forward, up);
+			viewMatrix = glm::lookAt(origin, origin + forward, glm::vec3(0,1,0));
 		}
 
 		void CalculateProjectionMatrix()
