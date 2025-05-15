@@ -42,6 +42,14 @@ void gp2::Scene::LoadScene(Device* pDevice, CommandPool* pCommandPool, const std
 	ProcessNode(pDevice, pCommandPool ,scene->mRootNode, scene, dataPath);
 }
 
+uint32_t gp2::Scene::AddTexture(Texture* texture, const std::string& path)
+{
+	m_Textures.emplace_back(texture);
+	m_LoadedTextures.insert(std::pair<std::string, uint32_t>(path, m_Textures.size() - 1));
+
+	return static_cast<uint32_t>(m_Textures.size() - 1);
+}
+
 void gp2::Scene::ProcessNode(Device* pDevice, CommandPool* pCommandPool, const aiNode* node, const aiScene* scene, const std::string& path)
 {
 	// Process each mesh at this node

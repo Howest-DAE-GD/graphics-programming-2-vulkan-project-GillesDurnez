@@ -101,7 +101,7 @@ namespace gp2
         Buffer* m_VertexBuffer;
         Buffer* m_IndexBuffer;
 
-        //void LoadModel(const std::string& path);
+        void LoadModel(const std::string& path);
         void CreateVertexBuffer();
         void CreateIndexBuffer();
 

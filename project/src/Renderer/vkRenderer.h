@@ -30,8 +30,9 @@ namespace gp2
 	public:
 		VkRenderer();
         ~VkRenderer();
+		void UpdateAllTextureDescriptors();
 
-        void RenderFrame();
+		void RenderFrame();
 
         Window& GetWindow() { return m_Window; }
 
@@ -82,9 +83,12 @@ namespace gp2
 
         // Renderer
         VkDescriptorPool m_DescriptorPool{};
-        std::vector<VkDescriptorSet> m_DescriptorSets;
+        std::vector<VkDescriptorSet> m_UBODescriptorSets{};
+        VkDescriptorSet m_TextureDescriptorSet{};
 
         VkSampler m_TextureSampler{};
+
+        int frameCount = 0;
 	};
 	
 }

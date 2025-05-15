@@ -27,11 +27,8 @@ namespace gp2
 			return static_cast<uint32_t>(m_Models.size() - 1);
 		}
 
-		uint32_t AddTexture(Texture* texture)
-		{
-			m_Textures.push_back(texture);
-			return static_cast<uint32_t>(m_Textures.size() - 1);
-		}
+		uint32_t AddTexture(Texture* texture, const std::string& path = "");
+
 
 		Model* GetModel(uint32_t index) const
 		{

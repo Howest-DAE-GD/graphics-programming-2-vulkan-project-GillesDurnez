@@ -25,24 +25,46 @@ gp2::Pipeline::~Pipeline()
 {
 	vkDestroyPipeline(m_pDevice->GetLogicalDevice(), m_GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_pDevice->GetLogicalDevice(), m_PipelineLayout, nullptr);
-	vkDestroyDescriptorSetLayout(m_pDevice->GetLogicalDevice(), m_DescriptorSetLayout, nullptr);
+
+	for (int index{}; index < m_DescriptorSetLayout.size(); ++index)
+	{
+		vkDestroyDescriptorSetLayout(m_pDevice->GetLogicalDevice(), m_DescriptorSetLayout[index], nullptr);
+	}
 }
 
 void gp2::Pipeline::CreateDescriptorSetLayout()
 {
-	VkDescriptorSetLayoutBinding uboLayoutBinding{};
-	uboLayoutBinding.binding = 0;
-	uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboLayoutBinding.descriptorCount = 1;
-	uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	uboLayoutBinding.pImmutableSamplers = nullptr;
+	m_DescriptorSetLayout.resize(2);
+	// UBO DescriptorSet
+	VkDescriptorSetLayoutBinding uboBinding{};
+	uboBinding.binding = 0;
+	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboBinding.descriptorCount = 1;
+	uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	uboBinding.pImmutableSamplers = nullptr;
 
-	VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-	samplerLayoutBinding.binding = 1;
-	samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	samplerLayoutBinding.descriptorCount = MAX_TEXTURES;
-	samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	samplerLayoutBinding.pImmutableSamplers = nullptr;
+	VkDescriptorSetLayoutCreateInfo layoutInfo0{};
+	layoutInfo0.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo0.bindingCount = 1;
+	layoutInfo0.pBindings = &uboBinding;
+
+	if (vkCreateDescriptorSetLayout(
+		m_pDevice->GetLogicalDevice(),
+		&layoutInfo0,
+		nullptr,
+		&m_DescriptorSetLayout[0]) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create UBO descriptor set layout!");
+	}
+
+	// Create texture descriptor sets
+	constexpr uint32_t MAX_TEXTURES = 512;
+	VkDescriptorSetLayoutBinding texBinding{};
+	texBinding.binding = 1;
+	texBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	texBinding.descriptorCount = MAX_TEXTURES;
+	texBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	texBinding.pImmutableSamplers = nullptr;
 
 	VkDescriptorBindingFlags bindingFlags[] = {
 		0,
@@ -53,56 +75,25 @@ void gp2::Pipeline::CreateDescriptorSetLayout()
 	VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{
 		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
 		.pNext = nullptr,
-		.bindingCount = 2,
+		.bindingCount = 1,
 		.pBindingFlags = bindingFlags,
 	};
 
-	std::array<VkDescriptorSetLayoutBinding, 2> bindings = {
-		uboLayoutBinding,
-		samplerLayoutBinding
-	};
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo{};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.pNext = &flagsInfo;
-	layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-	layoutInfo.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-	layoutInfo.pBindings = bindings.data();
+	VkDescriptorSetLayoutCreateInfo layoutInfo1{};
+	layoutInfo1.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo1.pNext = &flagsInfo;
+	layoutInfo1.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+	layoutInfo1.bindingCount = 1;
+	layoutInfo1.pBindings = &texBinding;
 
 	if (vkCreateDescriptorSetLayout(
 		m_pDevice->GetLogicalDevice(),
-		&layoutInfo,
+		&layoutInfo1,
 		nullptr,
-		&m_DescriptorSetLayout) != VK_SUCCESS)
+		&m_DescriptorSetLayout[1]) != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to create descriptor set layout!");
+		throw std::runtime_error("failed to create bindless texture descriptor set layout!");
 	}
-
-    //VkDescriptorSetLayoutBinding uboLayoutBinding{};
-    //uboLayoutBinding.binding = 0;
-    //uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    //uboLayoutBinding.descriptorCount = 1;
-    //uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    //uboLayoutBinding.pImmutableSamplers = nullptr; // Optional
-
-    //VkDescriptorSetLayoutBinding samplerLayoutBinding{};
-    //samplerLayoutBinding.binding = 1;
-    //samplerLayoutBinding.descriptorCount = 1;
-    //samplerLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    //samplerLayoutBinding.pImmutableSamplers = nullptr;
-    //samplerLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-    //std::array<VkDescriptorSetLayoutBinding, 2> bindings = { uboLayoutBinding, samplerLayoutBinding };
-    //VkDescriptorSetLayoutCreateInfo layoutInfo{};
-    //layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    //layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    //layoutInfo.pBindings = bindings.data();
-
-    //if (vkCreateDescriptorSetLayout(m_pDevice->GetLogicalDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
-    //    //if (vkCreateDescriptorSetLayout(m_Device.GetLogicalDevice(), &layoutInfo, nullptr, &m_DescriptorSetLayout) != VK_SUCCESS)
-    //{
-    //    throw std::runtime_error("failed to create descriptor set layout!");
-    //}
 }
 
 void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath)
@@ -229,17 +220,25 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	pcRange.offset = 0;
 	pcRange.size = sizeof(uint32_t);
 
+	VkDescriptorSetLayout setLayouts[] = {
+		m_DescriptorSetLayout[0],
+		m_DescriptorSetLayout[1]   
+	};
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 1;
+	pipelineLayoutInfo.setLayoutCount = 2;				
+	pipelineLayoutInfo.pSetLayouts = setLayouts;	
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pcRange;
-	pipelineLayoutInfo.pSetLayouts = &m_DescriptorSetLayout;
-	pipelineLayoutInfo.setLayoutCount = 1;
 
-	if (vkCreatePipelineLayout(m_pDevice->GetLogicalDevice(), &pipelineLayoutInfo, nullptr, &m_PipelineLayout) != VK_SUCCESS) 
+	if (vkCreatePipelineLayout(
+		m_pDevice->GetLogicalDevice(),
+		&pipelineLayoutInfo,
+		nullptr,
+		&m_PipelineLayout) != VK_SUCCESS)
 	{
-	   throw std::runtime_error("failed to create pipeline layout!");
+		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
 	VkPipelineRenderingCreateInfo renderingInfo{};

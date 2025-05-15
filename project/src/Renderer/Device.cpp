@@ -291,10 +291,12 @@ void gp2::Device::CreateLogicalDevice()
 
 	VkPhysicalDeviceVulkan12Features vulkan12Features{};
 	vulkan12Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    vulkan12Features.descriptorIndexing = VK_TRUE;
     vulkan12Features.runtimeDescriptorArray = VK_TRUE;
-    vulkan12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
     vulkan12Features.descriptorBindingPartiallyBound = VK_TRUE;
     vulkan12Features.descriptorBindingVariableDescriptorCount = VK_TRUE;
+    vulkan12Features.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
+    vulkan12Features.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
 	vulkan12Features.pNext = &vulkan11Features;
 
 	VkPhysicalDeviceVulkan13Features vulkan13Features{};

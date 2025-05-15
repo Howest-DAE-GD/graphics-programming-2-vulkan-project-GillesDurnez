@@ -23,7 +23,7 @@ namespace gp2
 		Pipeline& operator=(const Pipeline&) = delete;
 		Pipeline& operator=(Pipeline&&) = delete;
 
-		VkDescriptorSetLayout& GetDescriptorSetLayout() { return m_DescriptorSetLayout; }
+		VkDescriptorSetLayout& GetDescriptorSetLayout(int index) { return m_DescriptorSetLayout[index]; }
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		VkPipeline GetGraphicsPipeline() const { return m_GraphicsPipeline; }
 
@@ -39,7 +39,7 @@ namespace gp2
 
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;
-		VkDescriptorSetLayout m_DescriptorSetLayout;
+		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayout;
 
 
 	};
