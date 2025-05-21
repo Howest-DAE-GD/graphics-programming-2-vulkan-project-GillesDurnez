@@ -31,18 +31,19 @@ namespace gp2
 
 			void SetDebugName(uint64_t object ,const std::string& name, VkObjectType objectType) const
 			{
+#ifdef _DEBUG
 				VkDebugUtilsObjectNameInfoEXT nameInfo{};
 				nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
 				nameInfo.objectType = objectType;
 				nameInfo.objectHandle = object;
 				nameInfo.pObjectName = name.c_str();
-
 				VkResult result = vkSetDebugUtilsObjectNameEXT(m_pDevice, &nameInfo);
 				if (result != VK_SUCCESS) 
 				{
 					// Handle error (rare), e.g. log or assert
 					std::cout << "Failed to set debug name for object: " << name << std::endl;
 				}
+#endif
 			}
 
 		private:

@@ -18,14 +18,18 @@ namespace gp2
 	class BaseRenderPass
 	{
 	public:
-		BaseRenderPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, VkSampler sampler);
+		BaseRenderPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, Image* pDepthImage, VkSampler sampler);
 
+		BaseRenderPass(const BaseRenderPass& other) = delete;
+		BaseRenderPass(BaseRenderPass&& other) noexcept = delete;
+		BaseRenderPass& operator=(const BaseRenderPass& other) = delete;
+		BaseRenderPass& operator=(BaseRenderPass&& other) noexcept = delete;
 
 		~BaseRenderPass();
 
 		void CreateDescriptorSets(Scene* pScene);
 
-		void RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene) const;
+		void RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage) const;
 
 		void Update(Camera* pCamera, uint32_t currentImage) const;
 
@@ -33,6 +37,7 @@ namespace gp2
 		std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayout() const;
 		VkDescriptorPool CreateDescriptorPool() const;
 		void CreateUniformBuffers();
+		Pipeline::PipelineConfig& CreatePipeLineConfig(Image* pDepthImage);
 
 
 		Device* m_pDevice;
@@ -48,6 +53,7 @@ namespace gp2
 
 		std::vector<Buffer> m_UniformBuffers;
 
-		Pipeline m_Pipeline{ m_pDevice, m_pSwapChain, &m_DescriptorPool , "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
+		Pipeline::PipelineConfig m_PipelineConfig{};
+		Pipeline m_Pipeline;
 	};
 }

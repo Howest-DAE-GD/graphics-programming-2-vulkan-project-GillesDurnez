@@ -15,6 +15,7 @@
 #include "Resources/Model.h"
 #include "Resources/Scene.h"
 #include "Camera.h"
+#include "DepthPrePass.h"
 #include "DescriptorPool.h"
 
 namespace gp2
@@ -27,6 +28,7 @@ namespace gp2
         ~VkRenderer();
 		void UpdateAllTextureDescriptors();
 
+        void Update();
 		void RenderFrame();
 
         Window& GetWindow() { return m_Window; }
@@ -57,7 +59,8 @@ namespace gp2
         SwapChain m_SwapChain{ &m_Window, &m_Device, &m_CommandPool };
         VkSampler m_TextureSampler{ CreateTextureSampler() };
 
-        BaseRenderPass m_BaseRenderPass{ &m_Device, &m_CommandPool, &m_SwapChain, m_TextureSampler };
+        DepthPrePass m_DepthPrePass{ &m_Device, &m_CommandPool, &m_SwapChain };
+        BaseRenderPass m_BaseRenderPass{ &m_Device, &m_CommandPool, &m_SwapChain, m_DepthPrePass.GetDepthImage() ,m_TextureSampler };
 
 		Scene m_Scene{};
 		Camera m_Camera{ &m_Window,  m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height),{ 0.f, 0.f, 0.f }, 45.f, .1f, 10000.f };
@@ -73,7 +76,6 @@ namespace gp2
         uint32_t m_CurrentFrame = 0;
 
         int frameCount = 0;
-		std::vector<Image> m_DepthPrepassImage;
 	};
 	
 }

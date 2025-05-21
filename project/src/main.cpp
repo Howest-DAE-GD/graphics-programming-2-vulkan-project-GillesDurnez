@@ -31,6 +31,7 @@ public:
             }
 
             glfwPollEvents();
+            m_Renderer.Update();
             m_Renderer.RenderFrame();
 
             const auto sleep_time = current_time + std::chrono::milliseconds(m_MsPerFrame) - std::chrono::high_resolution_clock::now();

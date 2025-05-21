@@ -24,7 +24,7 @@ namespace gp2
 		const VkFormat& GetImageFormat() const { return m_SwapChainImageFormat; }
 		std::vector<Image>& GetImages() { return m_SwapChainImages; }
 		
-		Image* GetDepthImage() const { return m_pDepthImage; }
+		//Image* GetDepthImage() const { return m_pDepthImage; }
 
 		void RecreateSwapChain();
 		
@@ -40,18 +40,13 @@ namespace gp2
 	private:
 		void CreateSwapChain();
 		//void CreateImageViews();
-		void CreateDepthResources();
+		//void CreateDepthResources();
 
 		void CleanupSwapChain();
 
 		static VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats);
 		static VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes);
 		VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities) const;
-
-		//VkImageView CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const;
-		VkFormat FindDepthFormat() const;
-		VkFormat FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const;
-
 
 		Window* m_pWindow{};
 		Device* m_pDevice{};
@@ -62,7 +57,7 @@ namespace gp2
 		VkFormat					m_SwapChainImageFormat{};
 		VkExtent2D					m_SwapChainExtent{};
 
-		Image* m_pDepthImage{};
+		//Image* m_pDepthImage{};
 
 	};
 }

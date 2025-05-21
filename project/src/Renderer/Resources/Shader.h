@@ -12,7 +12,14 @@ namespace gp2
 	class Shader
 	{
 	public:
+		Shader() = default;
 		Shader(Device* pDevice, const std::string& filePath);
+
+		Shader(const Shader& other) = delete;
+		Shader(Shader&& other) noexcept;
+		Shader& operator=(const Shader& other) = delete;
+		Shader& operator=(Shader&& other) noexcept;
+
 		~Shader();
 		VkShaderModule GetShaderModule() const { return m_ShaderModule; }
 

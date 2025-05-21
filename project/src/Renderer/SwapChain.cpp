@@ -11,7 +11,7 @@ gp2::SwapChain::SwapChain(Window* window, Device* device, CommandPool* pCommandP
 {
     CreateSwapChain();
 	//CreateImageViews();
-    CreateDepthResources();
+    //CreateDepthResources();
 }
 
 gp2::SwapChain::~SwapChain()
@@ -179,72 +179,42 @@ VkExtent2D gp2::SwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
 //    return imageView;
 //}
 
-VkFormat gp2::SwapChain::FindDepthFormat() const
-{
-    return FindSupportedFormat(
-        { VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT },
-        VK_IMAGE_TILING_OPTIMAL,
-        VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
-    );
-}
-
-VkFormat gp2::SwapChain::FindSupportedFormat(const std::vector<VkFormat>& candidates, VkImageTiling tiling, VkFormatFeatureFlags features) const
-{
-    for (VkFormat format : candidates)
-    {
-        VkFormatProperties props;
-        vkGetPhysicalDeviceFormatProperties(m_pDevice->GetPhysicalDevice(), format, &props);
-
-        if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features)
-        {
-            return format;
-        }
-        else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features)
-        {
-            return format;
-        }
-    }
-
-    throw std::runtime_error("failed to find supported format!");
-}
-
-
-void gp2::SwapChain::CreateDepthResources()
-{
-    VkFormat depthFormat = FindDepthFormat();
-
-
-	gp2::Image::ImageCreateInfo depthImageCreateInfo{};
-
-	depthImageCreateInfo.width = m_SwapChainExtent.width;
-	depthImageCreateInfo.height = m_SwapChainExtent.height;
-	depthImageCreateInfo.format = depthFormat;
-	depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-	depthImageCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-	depthImageCreateInfo.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-
-    if (m_pDepthImage != nullptr) 
-    {
-        delete m_pDepthImage;
-		m_pDepthImage = nullptr;
-    }
-
-	m_pDepthImage = new Image{ m_pDevice, m_pCommandPool, depthImageCreateInfo };
-
-	VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
-
-    m_pDepthImage->TransitionImageLayout(commandBuffer, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
-
-    vmaSetAllocationName(m_pDevice->GetAllocator(), m_pDepthImage->GetImageAllocation(), "Swapchain depth image Buffer");
-
-}
+//void gp2::SwapChain::CreateDepthResources()
+//{
+//    VkFormat depthFormat = FindDepthFormat();
+//
+//
+//	gp2::Image::ImageCreateInfo depthImageCreateInfo{};
+//
+//	depthImageCreateInfo.width = m_SwapChainExtent.width;
+//	depthImageCreateInfo.height = m_SwapChainExtent.height;
+//	depthImageCreateInfo.format = depthFormat;
+//	depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+//	depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+//	depthImageCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+//	depthImageCreateInfo.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+//
+//    if (m_pDepthImage != nullptr) 
+//    {
+//        delete m_pDepthImage;
+//		m_pDepthImage = nullptr;
+//    }
+//
+//	m_pDepthImage = new Image{ m_pDevice, m_pCommandPool, depthImageCreateInfo };
+//
+//	VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
+//
+//    m_pDepthImage->TransitionImageLayout(commandBuffer, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+//    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
+//
+//    vmaSetAllocationName(m_pDevice->GetAllocator(), m_pDepthImage->GetImageAllocation(), "Swapchain depth image Buffer");
+//
+//}
 
 void gp2::SwapChain::CleanupSwapChain()
 {
-    delete m_pDepthImage;
-    m_pDepthImage = nullptr;
+    //delete m_pDepthImage;
+    //m_pDepthImage = nullptr;
 
     /*for (size_t i = 0; i < m_SwapChainImages.size(); i++)
     {
@@ -277,5 +247,5 @@ void gp2::SwapChain::RecreateSwapChain()
 		//image.RecreateImageView();
   //  }
     //CreateImageViews();
-    CreateDepthResources();
+    //CreateDepthResources();
 }

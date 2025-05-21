@@ -13,7 +13,7 @@ namespace gp2
 
 		struct DescriptorSetLayoutData
 		{
-			std::vector<VkDescriptorSetLayoutBinding>	bindings;
+			std::vector<VkDescriptorSetLayoutBinding>	bindings{};
 			VkDescriptorSetLayoutCreateInfo				info{};
 		};
 

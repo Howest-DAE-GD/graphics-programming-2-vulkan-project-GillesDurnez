@@ -2,11 +2,12 @@
 
 #include <array>
 
-gp2::BaseRenderPass::BaseRenderPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, VkSampler sampler)
+gp2::BaseRenderPass::BaseRenderPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, Image* pDepthImage, VkSampler sampler)
 	: m_pDevice(pDevice)
 	, m_pCommandPool(pCommandPool)
 	, m_pSwapChain(pSwapChain)
 	, m_TextureSampler(sampler)
+	, m_Pipeline({ m_pDevice, m_pSwapChain, &m_DescriptorPool, CreatePipeLineConfig(pDepthImage) , "shaders/shader_vert.spv", "shaders/shader_frag.spv" })
 {
     CreateUniformBuffers();
     m_DescriptorPool.SetDescriptorSetPool(CreateDescriptorPool());
@@ -14,25 +15,25 @@ gp2::BaseRenderPass::BaseRenderPass(Device* pDevice, CommandPool* pCommandPool, 
 
 gp2::BaseRenderPass::~BaseRenderPass() = default;
 
-void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene) const
+void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage) const
 {
 
-    m_pSwapChain->GetDepthImage()->TransitionImageLayout(commandBuffer, m_pSwapChain->GetDepthImage()->GetFormat(), m_pSwapChain->GetDepthImage()->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
+    depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
     m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     VkRenderingAttachmentInfo colorAttachment = {};
     colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    colorAttachment.imageView = m_pSwapChain->GetImages()[imageIndex].GetImageView();
-    colorAttachment.imageLayout = m_pSwapChain->GetImages()[imageIndex].GetImageLayout();
+    colorAttachment.imageView = targetImage->GetImageView();
+    colorAttachment.imageLayout = targetImage->GetImageLayout();
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     colorAttachment.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
 
     VkRenderingAttachmentInfo depthAttachment = {};
     depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    depthAttachment.imageView = m_pSwapChain->GetDepthImage()->GetImageView();
-    depthAttachment.imageLayout = m_pSwapChain->GetDepthImage()->GetImageLayout();
-    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depthAttachment.imageView = depthImage->GetImageView();
+    depthAttachment.imageLayout = depthImage->GetImageLayout();
+    depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
     depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
     depthAttachment.clearValue.depthStencil = { 1.0f, 0 };
 
@@ -305,4 +306,40 @@ void gp2::BaseRenderPass::CreateUniformBuffers()
 
         m_UniformBuffers[i] = Buffer{ m_pDevice, m_pCommandPool, bufferInfo, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, true };
     }
+}
+
+gp2::Pipeline::PipelineConfig& gp2::BaseRenderPass::CreatePipeLineConfig(Image* pDepthImage)
+{
+    // Depth
+    m_PipelineConfig.depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    m_PipelineConfig.depthStencil.depthTestEnable = VK_TRUE;
+    m_PipelineConfig.depthStencil.depthWriteEnable = VK_FALSE;
+    m_PipelineConfig.depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
+    m_PipelineConfig.depthStencil.depthBoundsTestEnable = VK_FALSE;
+    m_PipelineConfig.depthStencil.minDepthBounds = 0.0f; // Optional
+    m_PipelineConfig.depthStencil.maxDepthBounds = 1.0f; // Optional
+    m_PipelineConfig.depthStencil.stencilTestEnable = VK_FALSE;
+    m_PipelineConfig.depthStencil.front = {}; // Optional
+    m_PipelineConfig.depthStencil.back = {}; // Optional
+
+
+    //
+    m_PipelineConfig.renderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+    m_PipelineConfig.renderInfo.colorAttachmentCount = 1;
+    //renderingInfo.colorAttachmentCount = static_cast<uint32_t>(m_pSwapChain->GetSwapChainImages().size());
+    m_PipelineConfig.renderInfo.pColorAttachmentFormats = &m_pSwapChain->GetImageFormat();
+    m_PipelineConfig.renderInfo.depthAttachmentFormat = pDepthImage->GetFormat();
+
+    // Push Constatns
+	VkPushConstantRange pcRange{};
+	pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+	pcRange.offset = 0;
+	pcRange.size = sizeof(uint32_t);
+
+    m_PipelineConfig.pushConstants.emplace_back(pcRange);
+
+    // Depth Image
+    m_PipelineConfig.depthImage = pDepthImage;
+
+    return m_PipelineConfig;
 }

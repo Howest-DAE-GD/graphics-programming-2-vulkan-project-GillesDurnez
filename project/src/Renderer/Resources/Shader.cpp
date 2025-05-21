@@ -10,9 +10,28 @@ gp2::Shader::Shader(Device* pDevice, const std::string& filePath)
 	m_ShaderModule = CreateShaderModule(pDevice->GetLogicalDevice(), ReadFile(filePath));
 }
 
+gp2::Shader::Shader(Shader&& other) noexcept
+{
+    m_pDevice = other.m_pDevice;
+
+    m_ShaderModule = other.m_ShaderModule;
+    other.m_ShaderModule = VK_NULL_HANDLE;
+}
+
+gp2::Shader& gp2::Shader::operator=(Shader&& other) noexcept
+{
+    m_pDevice = other.m_pDevice;
+
+    m_ShaderModule = other.m_ShaderModule;
+    other.m_ShaderModule = VK_NULL_HANDLE;
+
+    return *this;
+}
+
 gp2::Shader::~Shader()
 {
-	vkDestroyShaderModule(m_pDevice->GetLogicalDevice(), m_ShaderModule, nullptr);
+    if (m_ShaderModule != VK_NULL_HANDLE && m_pDevice != nullptr)
+		vkDestroyShaderModule(m_pDevice->GetLogicalDevice(), m_ShaderModule, nullptr);
 }
 
 VkShaderModule gp2::Shader::CreateShaderModule(const VkDevice& logicalDevice, const std::vector<char>& code)

@@ -15,14 +15,22 @@ namespace gp2
 	class Pipeline
 	{
 	public:
-		Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass, const std::string& vertShaderPath, const std::string& fragShaderPath);
-		Pipeline(Device* device, SwapChain* swapChain, DescriptorPool* pDescriptorPool ,const std::string& vertShaderPath, const std::string& fragShaderPath);
+		struct PipelineConfig
+		{
+			VkPipelineDepthStencilStateCreateInfo depthStencil{};
+			Image* depthImage{};
+			VkPipelineRenderingCreateInfo renderInfo{};
+			std::vector<VkPushConstantRange> pushConstants{};
+		};
+
+		//Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass, const std::string& vertShaderPath, const std::string& fragShaderPath);
+		Pipeline(Device* device, SwapChain* swapChain, DescriptorPool* pDescriptorPool, const PipelineConfig& pipelineConfig,const std::string& vertShaderPath, const std::string& fragShaderPath);
 		~Pipeline();
 
 		Pipeline(const Pipeline&) = delete;
-		Pipeline(Pipeline&&) = delete;
+		Pipeline(Pipeline&&);
 		Pipeline& operator=(const Pipeline&) = delete;
-		Pipeline& operator=(Pipeline&&) = delete;
+		Pipeline& operator=(Pipeline&&);
 
 		//VkDescriptorSetLayout& GetDescriptorSetLayout(int index) { return m_DescriptorSetLayout[index]; }
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
@@ -31,7 +39,7 @@ namespace gp2
 	private:
 
 		//void CreateDescriptorSetLayout();
-		void CreateGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath);
+		void CreateGraphicsPipeline(const PipelineConfig& pipelineConfig, const std::string& vertShaderPath, const std::string& fragShaderPath);
 		DescriptorPool* m_pDescriptorPool{};
 
 		Device* m_pDevice{};

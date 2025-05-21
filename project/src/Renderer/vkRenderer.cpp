@@ -11,6 +11,7 @@ gp2::VkRenderer::VkRenderer()
     //CreateUniformBuffers();
     //CreateDescriptorPool();
     //CreateDescriptorSets();
+    m_DepthPrePass.CreateDescriptorSets(&m_Scene);
     m_BaseRenderPass.CreateDescriptorSets(&m_Scene);
     CreateSyncObjects();
 }
@@ -67,10 +68,13 @@ gp2::VkRenderer::~VkRenderer()
 //    );
 //}
 
-void gp2::VkRenderer::RenderFrame()
+void gp2::VkRenderer::Update()
 {
     m_Camera.Update();
+}
 
+void gp2::VkRenderer::RenderFrame()
+{
     vkWaitForFences(m_Device.GetLogicalDevice(), 1, &m_InFlightFences[m_CurrentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;
@@ -403,6 +407,7 @@ void gp2::VkRenderer::CreateSyncObjects()
 void gp2::VkRenderer::RecreateSwapChain()
 {
     m_SwapChain.RecreateSwapChain();
+    m_DepthPrePass.ReCreateDepthResource();
     //CleanupSwapChain();
 
     //CreateFrameBuffers();
@@ -411,6 +416,7 @@ void gp2::VkRenderer::RecreateSwapChain()
 
 void gp2::VkRenderer::UpdateUniformBuffer(uint32_t currentImage)
 {
+    m_DepthPrePass.Update(&m_Camera, currentImage);
     m_BaseRenderPass.Update(&m_Camera, currentImage);
 
  //   static auto startTime = std::chrono::high_resolution_clock::now();
@@ -465,7 +471,8 @@ void gp2::VkRenderer::RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_
         //vkCmdEndRendering(commandBuffer);
     }
 
-    m_BaseRenderPass.RecordCommandBuffer(commandBuffer, imageIndex, &m_Scene);
+    m_DepthPrePass.RecordCommandBuffer(commandBuffer, imageIndex, &m_Scene);
+    m_BaseRenderPass.RecordCommandBuffer(commandBuffer, imageIndex, &m_Scene, m_DepthPrePass.GetDepthImage(), &m_SwapChain.GetImages()[imageIndex]);
 
 	//m_SwapChain.GetDepthImage()->TransitionImageLayout(commandBuffer, m_SwapChain.GetDepthImage()->GetFormat(), m_SwapChain.GetDepthImage()->GetImageLayout(),VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE,VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
 	//m_SwapChain.GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_SwapChain.GetImageFormat(), m_SwapChain.GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);

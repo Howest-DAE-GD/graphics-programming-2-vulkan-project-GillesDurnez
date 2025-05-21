@@ -6,52 +6,75 @@
 #include "Resources/Model.h"
 #include "Resources/Shader.h"
 
-gp2::Pipeline::Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass,const std::string& vertShaderPath, const std::string& fragShaderPath)
-	: m_pDevice(device), m_pSwapChain(swapChain), m_pRenderPass(pRenderPass)
-{
-	//CreateDescriptorSetLayout();
-	CreateGraphicsPipeline(vertShaderPath, fragShaderPath);
-}
-
-gp2::Pipeline::Pipeline(Device* device, SwapChain* swapChain, DescriptorPool* pDescriptorPool, const std::string& vertShaderPath,
-	const std::string& fragShaderPath)
+gp2::Pipeline::Pipeline(Device* device, SwapChain* swapChain, DescriptorPool* pDescriptorPool, const PipelineConfig& pipelineConfig, const std::string& vertShaderPath, const std::string& fragShaderPath)
 	: m_pDevice(device)
 	, m_pSwapChain(swapChain)
 	, m_pDescriptorPool(pDescriptorPool)
 {
-	//CreateDescriptorSetLayout();
-	CreateGraphicsPipeline(vertShaderPath, fragShaderPath);
+	CreateGraphicsPipeline(pipelineConfig, vertShaderPath, fragShaderPath);
 }
 
 gp2::Pipeline::~Pipeline()
 {
 	vkDestroyPipeline(m_pDevice->GetLogicalDevice(), m_GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_pDevice->GetLogicalDevice(), m_PipelineLayout, nullptr);
-
-	//for (int index{}; index < m_DescriptorSetLayout.size(); ++index)
-	//{
-	//	vkDestroyDescriptorSetLayout(m_pDevice->GetLogicalDevice(), m_DescriptorSetLayout[index], nullptr);
-	//}
 }
 
-void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath)
+gp2::Pipeline::Pipeline(Pipeline&& other)
 {
+	m_pDevice = other.m_pDevice;
+	m_pDescriptorPool = other.m_pDescriptorPool;
+	m_pSwapChain = other.m_pSwapChain;
+	m_pDescriptorPool = other.m_pDescriptorPool;
+
+	m_PipelineLayout = std::move(other.m_PipelineLayout);
+	m_GraphicsPipeline = std::move(other.m_GraphicsPipeline);
+
+	other.m_PipelineLayout = VK_NULL_HANDLE;
+	other.m_GraphicsPipeline = VK_NULL_HANDLE;
+}
+
+gp2::Pipeline& gp2::Pipeline::operator=(Pipeline&& other)
+{
+	m_pDevice = other.m_pDevice;
+	m_pDescriptorPool = other.m_pDescriptorPool;
+	m_pSwapChain = other.m_pSwapChain;
+	m_pDescriptorPool = other.m_pDescriptorPool;
+
+	m_PipelineLayout = std::move(other.m_PipelineLayout);
+	m_GraphicsPipeline = std::move(other.m_GraphicsPipeline);
+
+	other.m_PipelineLayout = VK_NULL_HANDLE;
+	other.m_GraphicsPipeline = VK_NULL_HANDLE;
+
+	return *this;
+}
+
+void gp2::Pipeline::CreateGraphicsPipeline(const PipelineConfig& pipelineConfig, const std::string& vertShaderPath, const std::string& fragShaderPath)
+{
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};\
+
 	Shader vertShader(m_pDevice, vertShaderPath);
-	Shader fragShader(m_pDevice, fragShaderPath);
+	Shader fragShader{};
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo{};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 	vertShaderStageInfo.module = vertShader.GetShaderModule();
 	vertShaderStageInfo.pName = "main";
+	shaderStages.push_back(vertShaderStageInfo);
 
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
-	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = fragShader.GetShaderModule();
-	fragShaderStageInfo.pName = "main";
+	if (!fragShaderPath.empty())
+	{
+		fragShader = Shader{ m_pDevice, fragShaderPath };
+		VkPipelineShaderStageCreateInfo fragShaderStageInfo{};
+		fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+		fragShaderStageInfo.module = fragShader.GetShaderModule();
+		fragShaderStageInfo.pName = "main";
+		shaderStages.push_back(fragShaderStageInfo);
+	}
 
-	VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -120,26 +143,6 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 	multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
-
-
-	// Configure
-	VkPipelineDepthStencilStateCreateInfo depthStencil{};
-	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencil.depthTestEnable = VK_TRUE;
-	depthStencil.depthWriteEnable = VK_TRUE;
-	depthStencil.depthCompareOp = VK_COMPARE_OP_LESS;
-	depthStencil.depthBoundsTestEnable = VK_FALSE;
-	depthStencil.minDepthBounds = 0.0f; // Optional
-	depthStencil.maxDepthBounds = 1.0f; // Optional
-	depthStencil.stencilTestEnable = VK_FALSE;
-	depthStencil.front = {}; // Optional
-	depthStencil.back = {}; // Optional
-
-
-
-
-
-
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
@@ -161,28 +164,12 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	colorBlending.blendConstants[2] = 0.0f; // Optional
 	colorBlending.blendConstants[3] = 0.0f; // Optional
 
-
-
-
-
-
-	// Configureable + make
-	VkPushConstantRange pcRange{};
-	pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	pcRange.offset = 0;
-	pcRange.size = sizeof(uint32_t);
-
-
-
-
-
-	// Configure 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = m_pDescriptorPool->GetDescriptorSetLayouts().size();				
 	pipelineLayoutInfo.pSetLayouts = m_pDescriptorPool->GetDescriptorSetLayouts().data();
-	pipelineLayoutInfo.pushConstantRangeCount = 1;
-	pipelineLayoutInfo.pPushConstantRanges = &pcRange;
+	pipelineLayoutInfo.pushConstantRangeCount = pipelineConfig.pushConstants.size();
+	pipelineLayoutInfo.pPushConstantRanges = pipelineConfig.pushConstants.data();
 
 	if (vkCreatePipelineLayout(
 		m_pDevice->GetLogicalDevice(),
@@ -193,29 +180,30 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 		throw std::runtime_error("failed to create pipeline layout!");
 	}
 
-	VkPipelineRenderingCreateInfo renderingInfo{};
-	renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-	renderingInfo.colorAttachmentCount = 1;
-	//renderingInfo.colorAttachmentCount = static_cast<uint32_t>(m_pSwapChain->GetSwapChainImages().size());
-	renderingInfo.pColorAttachmentFormats = &m_pSwapChain->GetImageFormat();
-	renderingInfo.depthAttachmentFormat = m_pSwapChain->GetDepthImage()->GetFormat();
+
+	//VkPipelineRenderingCreateInfo renderingInfo{};
+	//renderingInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
+	//renderingInfo.colorAttachmentCount = 1;
+	////renderingInfo.colorAttachmentCount = static_cast<uint32_t>(m_pSwapChain->GetSwapChainImages().size());
+	//renderingInfo.pColorAttachmentFormats = &m_pSwapChain->GetImageFormat();
+	//renderingInfo.depthAttachmentFormat = pipelineConfig.depthImage->GetFormat();
 
 
 	VkGraphicsPipelineCreateInfo pipelineInfo{};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.stageCount = shaderStages.size();
+	pipelineInfo.pStages = shaderStages.data();
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &inputAssembly;
 	pipelineInfo.pViewportState = &viewportState;
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pDepthStencilState = &depthStencil; // Optional
+	pipelineInfo.pDepthStencilState = &pipelineConfig.depthStencil; // Optional
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
 	pipelineInfo.layout = m_PipelineLayout;
 
-	pipelineInfo.pNext = &renderingInfo;
+	pipelineInfo.pNext = &pipelineConfig.renderInfo;
 	pipelineInfo.renderPass = VK_NULL_HANDLE;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
