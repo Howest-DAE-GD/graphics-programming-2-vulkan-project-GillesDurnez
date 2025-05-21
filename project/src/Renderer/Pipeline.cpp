@@ -9,15 +9,17 @@
 gp2::Pipeline::Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass,const std::string& vertShaderPath, const std::string& fragShaderPath)
 	: m_pDevice(device), m_pSwapChain(swapChain), m_pRenderPass(pRenderPass)
 {
-	CreateDescriptorSetLayout();
+	//CreateDescriptorSetLayout();
 	CreateGraphicsPipeline(vertShaderPath, fragShaderPath);
 }
 
-gp2::Pipeline::Pipeline(Device* device, SwapChain* swapChain, const std::string& vertShaderPath,
+gp2::Pipeline::Pipeline(Device* device, SwapChain* swapChain, DescriptorPool* pDescriptorPool, const std::string& vertShaderPath,
 	const std::string& fragShaderPath)
-	: m_pDevice(device), m_pSwapChain(swapChain)
+	: m_pDevice(device)
+	, m_pSwapChain(swapChain)
+	, m_pDescriptorPool(pDescriptorPool)
 {
-	CreateDescriptorSetLayout();
+	//CreateDescriptorSetLayout();
 	CreateGraphicsPipeline(vertShaderPath, fragShaderPath);
 }
 
@@ -26,74 +28,10 @@ gp2::Pipeline::~Pipeline()
 	vkDestroyPipeline(m_pDevice->GetLogicalDevice(), m_GraphicsPipeline, nullptr);
 	vkDestroyPipelineLayout(m_pDevice->GetLogicalDevice(), m_PipelineLayout, nullptr);
 
-	for (int index{}; index < m_DescriptorSetLayout.size(); ++index)
-	{
-		vkDestroyDescriptorSetLayout(m_pDevice->GetLogicalDevice(), m_DescriptorSetLayout[index], nullptr);
-	}
-}
-
-void gp2::Pipeline::CreateDescriptorSetLayout()
-{
-	m_DescriptorSetLayout.resize(2);
-	// UBO DescriptorSet
-	VkDescriptorSetLayoutBinding uboBinding{};
-	uboBinding.binding = 0;
-	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	uboBinding.descriptorCount = 1;
-	uboBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	uboBinding.pImmutableSamplers = nullptr;
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo0{};
-	layoutInfo0.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo0.bindingCount = 1;
-	layoutInfo0.pBindings = &uboBinding;
-
-	if (vkCreateDescriptorSetLayout(
-		m_pDevice->GetLogicalDevice(),
-		&layoutInfo0,
-		nullptr,
-		&m_DescriptorSetLayout[0]) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create UBO descriptor set layout!");
-	}
-
-	// Create texture descriptor sets
-	constexpr uint32_t MAX_TEXTURES = 512;
-	VkDescriptorSetLayoutBinding texBinding{};
-	texBinding.binding = 1;
-	texBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	texBinding.descriptorCount = MAX_TEXTURES;
-	texBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	texBinding.pImmutableSamplers = nullptr;
-
-	VkDescriptorBindingFlags bindingFlags[] = {
-		0,
-		VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
-		VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT |
-		VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
-	};
-	VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo{
-		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
-		.pNext = nullptr,
-		.bindingCount = 1,
-		.pBindingFlags = bindingFlags,
-	};
-
-	VkDescriptorSetLayoutCreateInfo layoutInfo1{};
-	layoutInfo1.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo1.pNext = &flagsInfo;
-	layoutInfo1.flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-	layoutInfo1.bindingCount = 1;
-	layoutInfo1.pBindings = &texBinding;
-
-	if (vkCreateDescriptorSetLayout(
-		m_pDevice->GetLogicalDevice(),
-		&layoutInfo1,
-		nullptr,
-		&m_DescriptorSetLayout[1]) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create bindless texture descriptor set layout!");
-	}
+	//for (int index{}; index < m_DescriptorSetLayout.size(); ++index)
+	//{
+	//	vkDestroyDescriptorSetLayout(m_pDevice->GetLogicalDevice(), m_DescriptorSetLayout[index], nullptr);
+	//}
 }
 
 void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath)
@@ -182,6 +120,9 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 	multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
+
+
+	// Configure
 	VkPipelineDepthStencilStateCreateInfo depthStencil{};
 	depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	depthStencil.depthTestEnable = VK_TRUE;
@@ -193,6 +134,11 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	depthStencil.stencilTestEnable = VK_FALSE;
 	depthStencil.front = {}; // Optional
 	depthStencil.back = {}; // Optional
+
+
+
+
+
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -215,20 +161,26 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	colorBlending.blendConstants[2] = 0.0f; // Optional
 	colorBlending.blendConstants[3] = 0.0f; // Optional
 
+
+
+
+
+
+	// Configureable + make
 	VkPushConstantRange pcRange{};
 	pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 	pcRange.offset = 0;
 	pcRange.size = sizeof(uint32_t);
 
-	VkDescriptorSetLayout setLayouts[] = {
-		m_DescriptorSetLayout[0],
-		m_DescriptorSetLayout[1]   
-	};
 
+
+
+
+	// Configure 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipelineLayoutInfo.setLayoutCount = 2;				
-	pipelineLayoutInfo.pSetLayouts = setLayouts;	
+	pipelineLayoutInfo.setLayoutCount = m_pDescriptorPool->GetDescriptorSetLayouts().size();				
+	pipelineLayoutInfo.pSetLayouts = m_pDescriptorPool->GetDescriptorSetLayouts().data();
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pcRange;
 
@@ -261,18 +213,10 @@ void gp2::Pipeline::CreateGraphicsPipeline(const std::string& vertShaderPath, co
 	pipelineInfo.pDepthStencilState = &depthStencil; // Optional
 	pipelineInfo.pColorBlendState = &colorBlending;
 	pipelineInfo.pDynamicState = &dynamicState;
-	//pipelineInfo.layout = m_Pipeline.GetPipelineLayout();
 	pipelineInfo.layout = m_PipelineLayout;
-	//if (m_pRenderPass != nullptr)
-	//{
-	//	pipelineInfo.renderPass = m_pRenderPass->GetRenderPass();
-	//}
-	//else
-	//{
-		pipelineInfo.pNext = &renderingInfo;
-		pipelineInfo.renderPass = VK_NULL_HANDLE;
-	//}
-	//pipelineInfo.renderPass = m_pRenderPass->GetRenderPass();
+
+	pipelineInfo.pNext = &renderingInfo;
+	pipelineInfo.renderPass = VK_NULL_HANDLE;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE; // Optional
 	pipelineInfo.basePipelineIndex = -1; // Optional

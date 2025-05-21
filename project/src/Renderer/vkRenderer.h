@@ -4,6 +4,7 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+#include "BaseRenderPass.h"
 #include "Window.h"
 #include "Device.h"
 #include "CommandPool.h"
@@ -14,16 +15,10 @@
 #include "Resources/Model.h"
 #include "Resources/Scene.h"
 #include "Camera.h"
+#include "DescriptorPool.h"
 
 namespace gp2
 {
-    struct UniformBufferObject
-    {
-        alignas(16) glm::mat4 model;
-        alignas(16) glm::mat4 view;
-        alignas(16) glm::mat4 proj;
-    };
-
 
 	class VkRenderer
 	{
@@ -39,10 +34,9 @@ namespace gp2
 	private:
         // Setup
 		//void CreateFrameBuffers();
-		void CreateTextureSampler();
-        void CreateUniformBuffers();
-        void CreateDescriptorPool();
-        void CreateDescriptorSets();
+		VkSampler CreateTextureSampler();
+        //void CreateUniformBuffers();
+
         void CreateSyncObjects();
 
         // Cleanup
@@ -50,8 +44,9 @@ namespace gp2
 
         // Per Frame
         void RecreateSwapChain();
-        void UpdateUniformBuffer(uint32_t currentImage) const;
+        void UpdateUniformBuffer(uint32_t currentImage);
         void RecordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex);
+
 
 
         Window m_Window{};
@@ -60,11 +55,10 @@ namespace gp2
         CommandPool m_CommandPool{ &m_Device };
 
         SwapChain m_SwapChain{ &m_Window, &m_Device, &m_CommandPool };
+        VkSampler m_TextureSampler{ CreateTextureSampler() };
 
-        //RenderPass m_RenderPass{ &m_Device, &m_SwapChain };
-        Pipeline m_Pipeline{ &m_Device, &m_SwapChain , "shaders/shader_vert.spv", "shaders/shader_frag.spv" };
+        BaseRenderPass m_BaseRenderPass{ &m_Device, &m_CommandPool, &m_SwapChain, m_TextureSampler };
 
-        // Todo move outside of renderer
 		Scene m_Scene{};
 		Camera m_Camera{ &m_Window,  m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height),{ 0.f, 0.f, 0.f }, 45.f, .1f, 10000.f };
 
@@ -78,17 +72,8 @@ namespace gp2
         bool m_FramebufferResized = false;
         uint32_t m_CurrentFrame = 0;
 
-        // Renderer
-        std::vector<Buffer> m_UniformBuffers;
-
-        // Renderer
-        VkDescriptorPool m_DescriptorPool{};
-        std::vector<VkDescriptorSet> m_UBODescriptorSets{};
-        VkDescriptorSet m_TextureDescriptorSet{};
-
-        VkSampler m_TextureSampler{};
-
         int frameCount = 0;
+		std::vector<Image> m_DepthPrepassImage;
 	};
 	
 }

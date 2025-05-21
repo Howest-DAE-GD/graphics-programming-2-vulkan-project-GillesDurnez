@@ -1,6 +1,7 @@
 #pragma once
 #include <vulkan/vulkan.h>
 
+#include "DescriptorPool.h"
 #include "SwapChain.h"
 #include "Device.h"
 #include "RenderPass.h"
@@ -15,7 +16,7 @@ namespace gp2
 	{
 	public:
 		Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass, const std::string& vertShaderPath, const std::string& fragShaderPath);
-		Pipeline(Device* device, SwapChain* swapChain, const std::string& vertShaderPath, const std::string& fragShaderPath);
+		Pipeline(Device* device, SwapChain* swapChain, DescriptorPool* pDescriptorPool ,const std::string& vertShaderPath, const std::string& fragShaderPath);
 		~Pipeline();
 
 		Pipeline(const Pipeline&) = delete;
@@ -23,15 +24,15 @@ namespace gp2
 		Pipeline& operator=(const Pipeline&) = delete;
 		Pipeline& operator=(Pipeline&&) = delete;
 
-		VkDescriptorSetLayout& GetDescriptorSetLayout(int index) { return m_DescriptorSetLayout[index]; }
+		//VkDescriptorSetLayout& GetDescriptorSetLayout(int index) { return m_DescriptorSetLayout[index]; }
 		VkPipelineLayout GetPipelineLayout() const { return m_PipelineLayout; }
 		VkPipeline GetGraphicsPipeline() const { return m_GraphicsPipeline; }
 
-		static constexpr uint32_t MAX_TEXTURES = 512;
 	private:
 
-		void CreateDescriptorSetLayout();
+		//void CreateDescriptorSetLayout();
 		void CreateGraphicsPipeline(const std::string& vertShaderPath, const std::string& fragShaderPath);
+		DescriptorPool* m_pDescriptorPool{};
 
 		Device* m_pDevice{};
 		SwapChain* m_pSwapChain{};
@@ -39,7 +40,7 @@ namespace gp2
 
 		VkPipelineLayout m_PipelineLayout;
 		VkPipeline m_GraphicsPipeline;
-		std::vector<VkDescriptorSetLayout> m_DescriptorSetLayout;
+		//std::vector<VkDescriptorSetLayout> m_DescriptorSetLayout;
 
 
 	};

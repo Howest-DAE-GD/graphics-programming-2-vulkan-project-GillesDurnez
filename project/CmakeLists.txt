@@ -40,6 +40,15 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(assimp)
 
 
+Set( SRC_INCLUDES
+    ${CMAKE_SOURCE_DIR}/project/src/Renderer/Passes
+    ${CMAKE_SOURCE_DIR}/project/src/Renderer/Resources
+    ${CMAKE_SOURCE_DIR}/project/src/Renderer
+#    ${CMAKE_CURRENT_SOURCE_DIR}/Renderer/Passes
+#    ${CMAKE_CURRENT_SOURCE_DIR}/Renderer/Resources
+#    ${CMAKE_CURRENT_SOURCE_DIR}/Renderer
+)
+
 set( SRC_FILES
     "src/main.cpp"
     "src/Renderer/vkRenderer.cpp"
@@ -47,7 +56,7 @@ set( SRC_FILES
     "src/Renderer/Device.cpp" 
     "src/Renderer/Instance.cpp" 
     "src/Renderer/SwapChain.cpp" 
-    "src/Renderer/Renderpass.cpp"
+    "src/Renderer/Passes/Renderpass.cpp"
     "src/Renderer/Resources/Model.cpp"
     "src/Renderer/Pipeline.cpp" 
     "src/Renderer/Resources/Image.cpp" 
@@ -58,10 +67,12 @@ set( SRC_FILES
     "src/Renderer/Resources/Scene.cpp"
     "src/Renderer/Defines.h" 
     "src/Renderer/Camera.h" 
-    "src/Time.h" )
+    "src/Time.h"  
+    "src/Renderer/Passes/DepthPrePass.cpp" "src/Renderer/Resources/DescriptorPool.cpp" "src/Renderer/Passes/BaseRenderPass.cpp")
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 
+target_include_directories(${TARGET_NAME} PUBLIC ${SRC_INCLUDES})
 target_include_directories(${TARGET_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/include)
 target_include_directories(${TARGET_NAME} PUBLIC ${vma_SOURCE_DIR}/include)
 target_include_directories(${TARGET_NAME} PRIVATE ${assimp_SOURCE_DIR}/include)

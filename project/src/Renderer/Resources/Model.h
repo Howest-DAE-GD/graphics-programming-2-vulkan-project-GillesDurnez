@@ -9,7 +9,7 @@
 #include <glm/glm.hpp>
 
 #include "Texture.h"
-#include "../Buffer.h"
+#include "Buffer.h"
 
 #include "assimp/Importer.hpp"
 #include "assimp/mesh.h"
