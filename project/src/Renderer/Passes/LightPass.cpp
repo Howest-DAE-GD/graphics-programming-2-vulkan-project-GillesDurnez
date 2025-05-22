@@ -1,34 +1,27 @@
-#include "BaseRenderPass.h"
+#include "LightPass.h"
 
 #include <array>
 
-gp2::BaseRenderPass::BaseRenderPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, Image* pDepthImage, VkSampler sampler)
-	: m_pDevice(pDevice)
-	, m_pCommandPool(pCommandPool)
-	, m_pSwapChain(pSwapChain)
-	, m_TextureSampler(sampler)
-	, m_Pipeline({ m_pDevice, m_pSwapChain, &m_DescriptorPool, CreatePipeLineConfig(pDepthImage) , "shaders/shader_vert.spv", "shaders/shader_frag.spv" })
+gp2::LightPass::LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, Image* pDepthImage, VkSampler sampler)
+    : m_pDevice(pDevice)
+    , m_pCommandPool(pCommandPool)
+    , m_pSwapChain(pSwapChain)
+    , m_TextureSampler(sampler)
+    , m_Pipeline({ m_pDevice, m_pSwapChain, &m_DescriptorPool, CreatePipeLineConfig(pDepthImage) , "shaders/shader_vert.spv", "shaders/shader_frag.spv" })
 {
-    //CreateGBuffer();
     CreateUniformBuffers();
     m_DescriptorPool.SetDescriptorSetPool(CreateDescriptorPool());
 }
 
-gp2::BaseRenderPass::~BaseRenderPass()
-{
-    delete m_GBuffer;
-}
+gp2::LightPass::~LightPass() = default;
 
-void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage)
+void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage) const
 {
 
     depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
     m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
-
-    //m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    //m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    //m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    //m_GBuffer.diffuse.TransitionImageLayout(commandBuffer, m_GBuffer.diffuse.GetFormat(), m_GBuffer.diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, )
 
     std::vector<VkRenderingAttachmentInfo> colorAttachments{};
 
@@ -51,8 +44,8 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
 
     VkRenderingAttachmentInfo diffuseAttachment{};
     diffuseAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    diffuseAttachment.imageView = m_GBuffer->diffuse.GetImageView();
-    diffuseAttachment.imageLayout = m_GBuffer->diffuse.GetImageLayout();
+    diffuseAttachment.imageView = m_GBuffer.diffuse.GetImageView();
+    diffuseAttachment.imageLayout = m_GBuffer.diffuse.GetImageLayout();
     diffuseAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     diffuseAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     diffuseAttachment.clearValue.color = { {0,0,0,0} };
@@ -60,8 +53,8 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
 
     VkRenderingAttachmentInfo normalAttachment{};
     normalAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    normalAttachment.imageView = m_GBuffer->normal.GetImageView();
-    normalAttachment.imageLayout = m_GBuffer->normal.GetImageLayout();
+    normalAttachment.imageView = m_GBuffer.normal.GetImageView();
+    normalAttachment.imageLayout = m_GBuffer.normal.GetImageLayout();
     normalAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     normalAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     normalAttachment.clearValue.color = { {0,0,0,0} };
@@ -69,8 +62,8 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
 
     VkRenderingAttachmentInfo mtAndRogAttachment{};
     mtAndRogAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    mtAndRogAttachment.imageView = m_GBuffer->metalnessAndRoughness.GetImageView();
-    mtAndRogAttachment.imageLayout = m_GBuffer->metalnessAndRoughness.GetImageLayout();
+    mtAndRogAttachment.imageView = m_GBuffer.metalnessAndRoughness.GetImageView();
+    mtAndRogAttachment.imageLayout = m_GBuffer.metalnessAndRoughness.GetImageLayout();
     mtAndRogAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     mtAndRogAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
     mtAndRogAttachment.clearValue.color = { {0,0,0,0} };
@@ -88,34 +81,29 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
 
     vkCmdBeginRendering(commandBuffer, &renderInfo);
     {
+        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
+
+        VkViewport viewport{};
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = static_cast<float>(m_pSwapChain->GetSwapChainExtent().width);
+        viewport.height = static_cast<float>(m_pSwapChain->GetSwapChainExtent().height);
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+
+        VkRect2D scissor{};
+        scissor.offset = { 0, 0 };
+        scissor.extent = m_pSwapChain->GetSwapChainExtent();
+        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
         for (auto model : pScene->GetModels())
         {
-	        vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetGraphicsPipeline());
-
-	        VkViewport viewport{};
-	        viewport.x = 0.0f;
-	        viewport.y = 0.0f;
-	        viewport.width = static_cast<float>(m_pSwapChain->GetSwapChainExtent().width);
-	        viewport.height = static_cast<float>(m_pSwapChain->GetSwapChainExtent().height);
-	        viewport.minDepth = 0.0f;
-	        viewport.maxDepth = 1.0f;
-	        vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-
-	        VkRect2D scissor{};
-	        scissor.offset = { 0, 0 };
-	        scissor.extent = m_pSwapChain->GetSwapChainExtent();
-	        vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-
-            uint32_t pushConstants[]{
-            	model->GetTexture(),
-                model->GetNormalMap(),
-                model->GetMetalnessMap(),
-                model->GetRougnesMap()
-            };
+            uint32_t modelIdx{ model->GetTexture() };
 
             VkBuffer vertexBuffers[] = { model->GetVertexBuffer()->GetBuffer() };
             VkDeviceSize offsets[] = { 0 };
-            vkCmdPushConstants(commandBuffer, m_Pipeline.GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushConstants), pushConstants);
+            vkCmdPushConstants(commandBuffer, m_Pipeline.GetPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(uint32_t), &modelIdx);
             vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
             vkCmdBindIndexBuffer(commandBuffer, model->GetIndexBuffer()->GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 
@@ -130,7 +118,7 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
     m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
 }
 
-void gp2::BaseRenderPass::Update(Camera* pCamera, uint32_t currentImage) const
+void gp2::LightPass::Update(Camera* pCamera, uint32_t currentImage) const
 {
     UniformBufferObject ubo{};
     ubo.model = glm::mat4(1.0f);
@@ -139,7 +127,7 @@ void gp2::BaseRenderPass::Update(Camera* pCamera, uint32_t currentImage) const
     m_UniformBuffers[currentImage].CopyMemory(&ubo, sizeof(ubo), 0);
 }
 
-std::vector<VkDescriptorSetLayout> gp2::BaseRenderPass::CreateDescriptorSetLayout() const
+std::vector<VkDescriptorSetLayout> gp2::LightPass::CreateDescriptorSetLayout() const
 {
     std::vector<DescriptorPool::DescriptorSetLayoutData> layouts;
 
@@ -203,56 +191,26 @@ std::vector<VkDescriptorSetLayout> gp2::BaseRenderPass::CreateDescriptorSetLayou
     //gbDiffuse.info.pBindings = gbDiffuse.bindings.data();
     //layouts.push_back(std::move(gbDiffuse));
 
-    // --- --- Normal map ----------------------------------------------------------
-    //DescriptorPool::DescriptorSetLayoutData gbNormalMap{};
-    //gbNormalMap.bindings = { VkDescriptorSetLayoutBinding{
-    //    .binding = 2,
-    //    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    //    .descriptorCount = 1,
-    //    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-    //    .pImmutableSamplers = nullptr
-    //} };
-
-    //gbNormalMap.info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    //gbNormalMap.info.bindingCount = static_cast<uint32_t>(gbNormalMap.bindings.size());
-    //gbNormalMap.info.pBindings = gbNormalMap.bindings.data();
-    //layouts.push_back(std::move(gbNormalMap));
-
-    // --- --- Roughness & Metal ----------------------------------------------------------
-    //DescriptorPool::DescriptorSetLayoutData gbMAndR{};
-    //gbMAndR.bindings = { VkDescriptorSetLayoutBinding{
-    //    .binding = 2,
-    //    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-    //    .descriptorCount = 1,
-    //    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-    //    .pImmutableSamplers = nullptr
-    //} };
-
-    //gbMAndR.info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    //gbMAndR.info.bindingCount = static_cast<uint32_t>(gbMAndR.bindings.size());
-    //gbMAndR.info.pBindings = gbMAndR.bindings.data();
-    //layouts.push_back(std::move(gbMAndR));
-
     // --- Create the Layouts ---------------------------------------------------
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
     descriptorSetLayouts.resize(layouts.size());
-	for (int index{}; index < layouts.size(); ++index)
-	{
-		auto layoutInfo = layouts[index];
-		if (vkCreateDescriptorSetLayout(
-			m_pDevice->GetLogicalDevice(),
-			&layoutInfo.info,
-			nullptr,
-			&descriptorSetLayouts[index]) != VK_SUCCESS)
-		{
-			throw std::runtime_error("Failed to create descriptor set layout" + index);
-		}
-	}
+    for (int index{}; index < layouts.size(); ++index)
+    {
+        auto layoutInfo = layouts[index];
+        if (vkCreateDescriptorSetLayout(
+            m_pDevice->GetLogicalDevice(),
+            &layoutInfo.info,
+            nullptr,
+            &descriptorSetLayouts[index]) != VK_SUCCESS)
+        {
+            throw std::runtime_error("Failed to create descriptor set layout" + index);
+        }
+    }
 
     return descriptorSetLayouts;
 }
 
-VkDescriptorPool gp2::BaseRenderPass::CreateDescriptorPool() const
+VkDescriptorPool gp2::LightPass::CreateDescriptorPool() const
 {
     std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -270,18 +228,18 @@ VkDescriptorPool gp2::BaseRenderPass::CreateDescriptorPool() const
     poolInfo.maxSets = SwapChain::MAX_FRAMES_IN_FLIGHT + 1;
     VkDescriptorPool pool;
     if (vkCreateDescriptorPool(
-	m_pDevice->GetLogicalDevice(),
-	&poolInfo,
-	nullptr,
-	&pool) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create descriptor pool!");
-	}
+        m_pDevice->GetLogicalDevice(),
+        &poolInfo,
+        nullptr,
+        &pool) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to create descriptor pool!");
+    }
 
     return pool;
 }
 
-void gp2::BaseRenderPass::CreateDescriptorSets(Scene* pScene)
+void gp2::LightPass::CreateDescriptorSets(Scene* pScene)
 {
     m_UBODescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
     {
@@ -383,7 +341,7 @@ void gp2::BaseRenderPass::CreateDescriptorSets(Scene* pScene)
     );
 }
 
-void gp2::BaseRenderPass::CreateUniformBuffers()
+void gp2::LightPass::CreateUniformBuffers()
 {
     VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
@@ -401,19 +359,8 @@ void gp2::BaseRenderPass::CreateUniformBuffers()
     }
 }
 
-gp2::Pipeline::PipelineConfig& gp2::BaseRenderPass::CreatePipeLineConfig(Image* pDepthImage)
+gp2::Pipeline::PipelineConfig& gp2::LightPass::CreatePipeLineConfig(Image* pDepthImage)
 {
-
-    auto commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
-
-    m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-
-
-    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
-
-
     // Depth
     m_PipelineConfig.depthStencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
     m_PipelineConfig.depthStencil.depthTestEnable = VK_TRUE;
@@ -426,25 +373,19 @@ gp2::Pipeline::PipelineConfig& gp2::BaseRenderPass::CreatePipeLineConfig(Image* 
     m_PipelineConfig.depthStencil.front = {}; // Optional
     m_PipelineConfig.depthStencil.back = {}; // Optional
 
-    m_PipelineConfig.colorAttatchmentFormats = std::vector<VkFormat>{
-        m_GBuffer->diffuse.GetFormat(),
-        m_GBuffer->normal.GetFormat(),
-        m_GBuffer->metalnessAndRoughness.GetFormat()
-    };
 
-
-    // 
+    //
     m_PipelineConfig.renderInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-    m_PipelineConfig.renderInfo.colorAttachmentCount = m_PipelineConfig.colorAttatchmentFormats.size();
+    m_PipelineConfig.renderInfo.colorAttachmentCount = 1;
     //renderingInfo.colorAttachmentCount = static_cast<uint32_t>(m_pSwapChain->GetSwapChainImages().size());
-    m_PipelineConfig.renderInfo.pColorAttachmentFormats = m_PipelineConfig.colorAttatchmentFormats.data();
+    m_PipelineConfig.renderInfo.pColorAttachmentFormats = &m_pSwapChain->GetImageFormat();
     m_PipelineConfig.renderInfo.depthAttachmentFormat = pDepthImage->GetFormat();
 
     // Push Constatns
-	VkPushConstantRange pcRange{};
-	pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-	pcRange.offset = 0;
-	pcRange.size = 4 * sizeof(uint32_t);
+    VkPushConstantRange pcRange{};
+    pcRange.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+    pcRange.offset = 0;
+    pcRange.size = sizeof(uint32_t);
 
     m_PipelineConfig.pushConstants.emplace_back(pcRange);
 
@@ -454,9 +395,8 @@ gp2::Pipeline::PipelineConfig& gp2::BaseRenderPass::CreatePipeLineConfig(Image* 
     return m_PipelineConfig;
 }
 
-gp2::GBuffer* gp2::BaseRenderPass::CreateGBuffer()
+void gp2::LightPass::CreateGBuffer()
 {
-    GBuffer* gBuffer = new GBuffer{};
     // Diffuse
     VkImageCreateInfo diffuseCreateInfo{};
     diffuseCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -471,10 +411,9 @@ gp2::GBuffer* gp2::BaseRenderPass::CreateGBuffer()
     diffuseCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     diffuseCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     diffuseCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    diffuseCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    gBuffer->diffuse = Image{ m_pDevice, m_pCommandPool, diffuseCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_ASPECT_COLOR_BIT };
-    m_pDevice->GetDebugger().SetDebugName(reinterpret_cast<uint64_t>(gBuffer->diffuse.GetImage()), "GB Diffuse Image ", VK_OBJECT_TYPE_IMAGE);
+    m_GBuffer.diffuse = Image{ m_pDevice, m_pCommandPool, diffuseCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, diffuseCreateInfo.format, VK_IMAGE_ASPECT_COLOR_BIT };
+
     // Normals
     VkImageCreateInfo normalCreateInfo{};
     normalCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -489,10 +428,8 @@ gp2::GBuffer* gp2::BaseRenderPass::CreateGBuffer()
     normalCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     normalCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     normalCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    normalCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    gBuffer->normal = Image{ m_pDevice, m_pCommandPool, normalCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT };
-    m_pDevice->GetDebugger().SetDebugName(reinterpret_cast<uint64_t>(gBuffer->normal.GetImage()), "GB Normal Image ", VK_OBJECT_TYPE_IMAGE);
+    m_GBuffer.normal = Image{ m_pDevice, m_pCommandPool, normalCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, normalCreateInfo.format, VK_IMAGE_ASPECT_COLOR_BIT };
 
     // Metalness / Roughness
     VkImageCreateInfo metalnessCreateInfo{};
@@ -508,19 +445,7 @@ gp2::GBuffer* gp2::BaseRenderPass::CreateGBuffer()
     metalnessCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     metalnessCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     metalnessCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    metalnessCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    gBuffer->metalnessAndRoughness = Image{ m_pDevice, m_pCommandPool, metalnessCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_R32G32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT };
-    m_pDevice->GetDebugger().SetDebugName(reinterpret_cast<uint64_t>(gBuffer->metalnessAndRoughness.GetImage()), "GB MR Image ", VK_OBJECT_TYPE_IMAGE);
+    m_GBuffer.metalnessAndRoughness = Image{ m_pDevice, m_pCommandPool, metalnessCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, metalnessCreateInfo.format, VK_IMAGE_ASPECT_COLOR_BIT };
 
-    //auto commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
-
-    //gBuffer->diffuse.TransitionImageLayout(commandBuffer, gBuffer->diffuse.GetFormat(), gBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    //gBuffer->normal.TransitionImageLayout(commandBuffer, gBuffer->diffuse.GetFormat(), gBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    //gBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, gBuffer->diffuse.GetFormat(), gBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-
-
-    //m_pCommandPool->EndSingleTimeCommands(commandBuffer);
-
-    return gBuffer;
 }

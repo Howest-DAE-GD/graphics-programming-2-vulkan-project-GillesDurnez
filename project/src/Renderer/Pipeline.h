@@ -21,6 +21,7 @@ namespace gp2
 			Image* depthImage{};
 			VkPipelineRenderingCreateInfo renderInfo{};
 			std::vector<VkPushConstantRange> pushConstants{};
+			std::vector<VkFormat> colorAttatchmentFormats{};
 		};
 
 		//Pipeline(Device* device, SwapChain* swapChain, RenderPass* pRenderPass, const std::string& vertShaderPath, const std::string& fragShaderPath);

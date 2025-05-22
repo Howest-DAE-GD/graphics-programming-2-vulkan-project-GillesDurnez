@@ -15,6 +15,13 @@ namespace gp2
 		alignas(16) glm::mat4 proj;
 	};
 
+	struct GBuffer
+	{
+		Image diffuse{};
+		Image normal{};
+		Image metalnessAndRoughness{};
+	};
+
 	class BaseRenderPass
 	{
 	public:
@@ -29,7 +36,7 @@ namespace gp2
 
 		void CreateDescriptorSets(Scene* pScene);
 
-		void RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage) const;
+		void RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage);
 
 		void Update(Camera* pCamera, uint32_t currentImage) const;
 
@@ -39,12 +46,15 @@ namespace gp2
 		void CreateUniformBuffers();
 		Pipeline::PipelineConfig& CreatePipeLineConfig(Image* pDepthImage);
 
+		GBuffer* CreateGBuffer();
 
 		Device* m_pDevice;
 		CommandPool* m_pCommandPool;
 		SwapChain* m_pSwapChain;
 
 		VkSampler m_TextureSampler;
+
+		GBuffer* m_GBuffer{CreateGBuffer()};
 
 		DescriptorPool m_DescriptorPool{ m_pDevice, CreateDescriptorSetLayout() };
 

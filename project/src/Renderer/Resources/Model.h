@@ -87,13 +87,23 @@ namespace gp2
 		const Buffer* GetIndexBuffer() const { return m_IndexBuffer; }
 
 		void AddTexture(uint32_t index) { m_TextureIndexes.push_back(index); }
+		void AddNormalMap(uint32_t index) { m_NormalMapIndexes.push_back(index); }
+		void AddMetalMap(uint32_t index) { m_MetalnesIndexes.push_back(index); }
+		void AddRoughnessMap(uint32_t index) { m_RoughnessIndexes.push_back(index); }
+
 		uint32_t GetTexture() const { return m_TextureIndexes[0]; }
+		uint32_t GetNormalMap() const { return !m_NormalMapIndexes.empty() ? m_NormalMapIndexes[0] : UINT32_MAX; }
+		uint32_t GetMetalnessMap() const { return !m_MetalnesIndexes.empty() ? m_MetalnesIndexes[0] : UINT32_MAX; }
+		uint32_t GetRougnesMap() const { return !m_RoughnessIndexes.empty() ? m_RoughnessIndexes[0] : UINT32_MAX; }
 
 	private:
         Device* m_pDevice;
 		CommandPool* m_pCommandPool;
 
 		std::vector<uint32_t> m_TextureIndexes;
+		std::vector<uint32_t> m_NormalMapIndexes;
+		std::vector<uint32_t> m_MetalnesIndexes;
+		std::vector<uint32_t> m_RoughnessIndexes;
 
         std::vector<Vertex> m_Vertices;
         std::vector<uint32_t> m_Indices;

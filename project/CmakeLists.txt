@@ -68,7 +68,7 @@ set( SRC_FILES
     "src/Renderer/Defines.h" 
     "src/Renderer/Camera.h" 
     "src/Time.h"  
-    "src/Renderer/Passes/DepthPrePass.cpp" "src/Renderer/Resources/DescriptorPool.cpp" "src/Renderer/Passes/BaseRenderPass.cpp")
+    "src/Renderer/Passes/DepthPrePass.cpp" "src/Renderer/Resources/DescriptorPool.cpp" "src/Renderer/Passes/BaseRenderPass.cpp" "src/Renderer/Passes/LightPass.cpp")
 
 add_executable(${TARGET_NAME} ${SRC_FILES})
 

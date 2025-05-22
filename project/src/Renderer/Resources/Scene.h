@@ -28,6 +28,9 @@ namespace gp2
 		}
 
 		uint32_t AddTexture(Texture* texture, const std::string& path = "");
+		uint32_t AddNormalMap(Texture* texture, const std::string& path = "");
+		uint32_t AddMetalnessMap(Texture* texture, const std::string& path = "");
+		uint32_t AddRoughnesslMap(Texture* texture, const std::string& path = "");
 
 
 		Model* GetModel(uint32_t index) const
@@ -64,10 +67,11 @@ namespace gp2
 
 	private:
 		std::vector<Model*> m_Models{};
+
 		std::vector<Texture*> m_Textures{};
+
 		std::map<std::string, uint32_t> m_LoadedTextures;
 
 		inline static Assimp::Importer m_Importer{};
-
 	};
 }

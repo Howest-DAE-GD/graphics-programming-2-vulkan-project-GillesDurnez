@@ -76,13 +76,13 @@ gp2::Image& gp2::Image::operator=(Image&& other) noexcept
     m_ImageView = other.m_ImageView;
     m_pDevice = other.m_pDevice;
     m_pCommandPool = other.m_pCommandPool;
-	//m_Format = other.m_Format;
+	m_Format = other.m_Format;
 	m_ImageAspectFlags = other.m_ImageAspectFlags;
-
 
     other.m_Image = VK_NULL_HANDLE;
     other.m_ImageAllocation = VK_NULL_HANDLE;
     other.m_ImageView = VK_NULL_HANDLE;
+
 
 	return *this;
 }
@@ -90,6 +90,8 @@ gp2::Image& gp2::Image::operator=(Image&& other) noexcept
 
 void gp2::Image::CleanupImageView()
 {
+    if (m_ImageView == VK_NULL_HANDLE) return;
+
 	vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_ImageView, nullptr);
 	m_ImageView = VK_NULL_HANDLE;
 }

@@ -52,7 +52,7 @@ gp2::Pipeline& gp2::Pipeline::operator=(Pipeline&& other)
 
 void gp2::Pipeline::CreateGraphicsPipeline(const PipelineConfig& pipelineConfig, const std::string& vertShaderPath, const std::string& fragShaderPath)
 {
-	std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};\
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStages{};
 
 	Shader vertShader(m_pDevice, vertShaderPath);
 	Shader fragShader{};
@@ -143,6 +143,8 @@ void gp2::Pipeline::CreateGraphicsPipeline(const PipelineConfig& pipelineConfig,
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 	multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
+	std::vector<VkPipelineColorBlendAttachmentState> cStates{};
+
 	VkPipelineColorBlendAttachmentState colorBlendAttachment{};
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
@@ -153,12 +155,17 @@ void gp2::Pipeline::CreateGraphicsPipeline(const PipelineConfig& pipelineConfig,
 	colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
 	colorBlendAttachment.alphaBlendOp = VK_BLEND_OP_ADD; // Optional
 
+	for (int index{}; index < pipelineConfig.renderInfo.colorAttachmentCount; ++index)
+	{
+		cStates.push_back(colorBlendAttachment);
+	}
+
 	VkPipelineColorBlendStateCreateInfo colorBlending{};
 	colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	colorBlending.logicOpEnable = VK_FALSE;
 	colorBlending.logicOp = VK_LOGIC_OP_COPY; // Optional
-	colorBlending.attachmentCount = 1;
-	colorBlending.pAttachments = &colorBlendAttachment;
+	colorBlending.attachmentCount = cStates.size();
+	colorBlending.pAttachments = cStates.data();
 	colorBlending.blendConstants[0] = 0.0f; // Optional
 	colorBlending.blendConstants[1] = 0.0f; // Optional
 	colorBlending.blendConstants[2] = 0.0f; // Optional

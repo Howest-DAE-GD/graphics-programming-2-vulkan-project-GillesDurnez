@@ -59,21 +59,81 @@ void gp2::Scene::ProcessNode(Device* pDevice, CommandPool* pCommandPool, const a
 		Model* newModel = new Model{ pDevice, pCommandPool, mesh };
 		m_Models.push_back(newModel);
 
-		aiString tPath;
-		scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &tPath);
+		aiString texturePath;
+		scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE, 0, &texturePath);
+		std::string relativeTexturePath = path + texturePath.C_Str();
 
-		std::string filePath = path + tPath.C_Str();
+		aiString normalMapPath;
+		scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_NORMALS, 0, &normalMapPath);
+		std::string relativeNormalMapPath = path + normalMapPath.C_Str();
 
-		if (m_LoadedTextures.contains(filePath))
+		aiString metalnesPath;
+		scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_METALNESS, 0, &metalnesPath);
+		std::string relativeMetalnesPath = path + metalnesPath.C_Str();
+
+		aiString roughnessPath;
+		scene->mMaterials[mesh->mMaterialIndex]->GetTexture(aiTextureType_DIFFUSE_ROUGHNESS, 0, &roughnessPath);
+		std::string relativeRoughnessPath = path + roughnessPath.C_Str();
+
+		// +----- Textures -----+
+		if (m_LoadedTextures.contains(relativeTexturePath))
 		{
-			newModel->AddTexture(m_LoadedTextures[filePath]);
+			newModel->AddTexture(m_LoadedTextures[relativeTexturePath]);
 		}
 		else
 		{
-			m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, filePath });
-			m_LoadedTextures.insert(std::pair<std::string, uint32_t>(filePath, m_Textures.size() - 1));
-			newModel->AddTexture(m_LoadedTextures[filePath]);
+			m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, relativeTexturePath });
+			m_LoadedTextures.insert(std::pair<std::string, uint32_t>(relativeTexturePath, m_Textures.size() - 1));
+			newModel->AddTexture(m_LoadedTextures[relativeTexturePath]);
 
+		}
+
+		// +----- Normal Maps -----+
+		if (normalMapPath.length != 0)
+		{
+			if (m_LoadedTextures.contains(relativeNormalMapPath))
+			{
+				newModel->AddNormalMap(m_LoadedTextures[relativeNormalMapPath]);
+			}
+			else
+			{
+				m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, relativeNormalMapPath });
+				m_LoadedTextures.insert(std::pair<std::string, uint32_t>(relativeNormalMapPath, m_Textures.size() - 1));
+				newModel->AddNormalMap(m_LoadedTextures[relativeNormalMapPath]);
+
+			}
+		}
+
+		// +----- Metalness maps -----+
+		if (metalnesPath.length != 0)
+		{
+			if (m_LoadedTextures.contains(relativeMetalnesPath))
+			{
+				newModel->AddMetalMap(m_LoadedTextures[relativeMetalnesPath]);
+			}
+			else
+			{
+				m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, relativeMetalnesPath });
+				m_LoadedTextures.insert(std::pair<std::string, uint32_t>(relativeMetalnesPath, m_Textures.size() - 1));
+				newModel->AddMetalMap(m_LoadedTextures[relativeMetalnesPath]);
+
+			}
+		}
+
+		// +----- Roughness Maps -----+
+		if (roughnessPath.length != 0)
+		{
+			if (m_LoadedTextures.contains(relativeRoughnessPath))
+			{
+				newModel->AddRoughnessMap(m_LoadedTextures[relativeRoughnessPath]);
+			}
+			else
+			{
+				m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, relativeRoughnessPath });
+				m_LoadedTextures.insert(std::pair<std::string, uint32_t>(relativeRoughnessPath, m_Textures.size() - 1));
+				newModel->AddRoughnessMap(m_LoadedTextures[relativeRoughnessPath]);
+
+			}
 		}
 	}
 

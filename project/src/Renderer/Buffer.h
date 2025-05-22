@@ -25,8 +25,8 @@ namespace gp2
 
 
 	private:
-		Device* m_pDevice;
-		CommandPool* m_pCommandPool;
+		Device* m_pDevice{};
+		CommandPool* m_pCommandPool{};
 
 		VkBuffer m_Buffer{};
 		VmaAllocation m_BufferAllocation{};
