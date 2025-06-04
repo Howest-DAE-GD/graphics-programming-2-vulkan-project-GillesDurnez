@@ -40,6 +40,8 @@ namespace gp2
 
 		void Update(Camera* pCamera, uint32_t currentImage) const;
 
+		void RecreateGBuffer();
+
 		GBuffer* GetGBuffer() const { return m_GBuffer; }
 
 	private:

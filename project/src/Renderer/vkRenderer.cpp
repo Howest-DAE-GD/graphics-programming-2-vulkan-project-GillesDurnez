@@ -168,6 +168,8 @@ void gp2::VkRenderer::RecreateSwapChain()
 {
     m_SwapChain.RecreateSwapChain();
     m_DepthPrePass.ReCreateDepthResource();
+	m_BaseRenderPass.RecreateGBuffer();
+    m_LightPass.RebindGbufferDescriptors();
     //CleanupSwapChain();
 
     //CreateFrameBuffers();

@@ -2,13 +2,12 @@
 
 #include <array>
 
-gp2::LightPass::LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, GBuffer* pGBuffer,
-	Image* pDepthImage, VkSampler sampler)
+gp2::LightPass::LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, BaseRenderPass* pGBuffer, Image* pDepthImage, VkSampler sampler)
     : m_pDevice(pDevice)
     , m_pCommandPool(pCommandPool)
     , m_pSwapChain(pSwapChain)
     , m_TextureSampler(sampler)
-	, m_pGBuffer(pGBuffer)
+	, m_pBaseRenderPass(pGBuffer)
 	, m_pDepthImage(pDepthImage)
     , m_Pipeline({ m_pDevice, m_pSwapChain, &m_DescriptorPool, CreatePipeLineConfig(pDepthImage) , "shaders/lightPass_vert.spv", "shaders/lightPass_frag.spv" })
 {
@@ -22,6 +21,7 @@ void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_
 
     //depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
     targetImage->TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+	GBuffer* m_pGBuffer = m_pBaseRenderPass->GetGBuffer();
 
     m_pGBuffer->diffuse.TransitionImageLayout(commandBuffer, m_pGBuffer->diffuse.GetFormat(), m_pGBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
     m_pGBuffer->normal.TransitionImageLayout(commandBuffer, m_pGBuffer->normal.GetFormat(), m_pGBuffer->normal.GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
@@ -111,6 +111,31 @@ void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_
 void gp2::LightPass::Update(Camera* pCamera, uint32_t currentImage) const
 {
 
+}
+
+void gp2::LightPass::RebindGbufferDescriptors()
+{
+    std::array<VkWriteDescriptorSet, 3> writes{};
+    std::array<VkDescriptorImageInfo, 3> imageInfos{};
+
+    GBuffer* m_pGBuffer = m_pBaseRenderPass->GetGBuffer();
+
+    imageInfos[0] = { m_TextureSampler, m_pGBuffer->diffuse.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    imageInfos[1] = { m_TextureSampler, m_pGBuffer->normal.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+    imageInfos[2] = { m_TextureSampler, m_pGBuffer->metalnessAndRoughness.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+
+    for (int i = 0; i < 3; ++i)
+    {
+        writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[i].dstSet = m_GBufferDescriptorSet;
+        writes[i].dstBinding = i;
+        writes[i].dstArrayElement = 0;
+        writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writes[i].descriptorCount = 1;
+        writes[i].pImageInfo = &imageInfos[i];
+    }
+
+    vkUpdateDescriptorSets(m_pDevice->GetLogicalDevice(), writes.size(), writes.data(), 0, nullptr);
 }
 
 std::vector<VkDescriptorSetLayout> gp2::LightPass::CreateDescriptorSetLayout() const
@@ -225,6 +250,8 @@ void gp2::LightPass::CreateDescriptorSets(Scene* pScene)
 
     std::array<VkWriteDescriptorSet, 3> writes{};
 	std::array<VkDescriptorImageInfo, 3> imageInfos{};
+
+    GBuffer* m_pGBuffer = m_pBaseRenderPass->GetGBuffer();
 
 	imageInfos[0] = { m_TextureSampler, m_pGBuffer->diffuse.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	imageInfos[1] = { m_TextureSampler, m_pGBuffer->normal.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };

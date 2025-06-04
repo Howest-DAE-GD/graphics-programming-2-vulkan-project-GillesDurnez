@@ -147,6 +147,12 @@ void gp2::BaseRenderPass::Update(Camera* pCamera, uint32_t currentImage) const
     m_UniformBuffers[currentImage].CopyMemory(&ubo, sizeof(ubo), 0);
 }
 
+void gp2::BaseRenderPass::RecreateGBuffer()
+{
+	delete m_GBuffer;
+	m_GBuffer = CreateGBuffer();
+}
+
 std::vector<VkDescriptorSetLayout> gp2::BaseRenderPass::CreateDescriptorSetLayout() const
 {
     std::vector<DescriptorPool::DescriptorSetLayoutData> layouts;
