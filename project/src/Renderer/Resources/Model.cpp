@@ -25,7 +25,7 @@ namespace std
     };
 }
 
-gp2::Model::Model(Device* pDevice, CommandPool* pCommandPool, aiMesh* mesh)
+gp2::Model::Model(Device* pDevice, CommandPool* pCommandPool, aiMesh* mesh, const aiMatrix4x4& transform )
 	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
 	m_Vertices.reserve(mesh->mNumVertices);
@@ -41,6 +41,8 @@ gp2::Model::Model(Device* pDevice, CommandPool* pCommandPool, aiMesh* mesh)
 			mesh->mVertices[i].z
 		};
 
+        vertex.pos = ToGlmMat(transform) * glm::vec4(vertex.pos, 1.f);
+
         // NORMALS
         if (mesh->HasNormals()) {
             vertex.normal = {
@@ -53,6 +55,19 @@ gp2::Model::Model(Device* pDevice, CommandPool* pCommandPool, aiMesh* mesh)
 		{
 			vertex.normal = { 1.0f, 1.0f, 1.0f };
 		}
+
+        if (mesh->HasTangentsAndBitangents())
+        {
+            vertex.tangent = {
+                mesh->mTangents[i].x,
+                mesh->mTangents[i].y,
+                mesh->mTangents[i].z
+            };
+        }
+        else
+        {
+			vertex.tangent = { 1.0f, 1.0f, 1.0f }; // Default value if no tangents are present
+        }
 
 		// UV COORDINATES
 		if (mesh->HasTextureCoords(0))
@@ -218,4 +233,15 @@ void gp2::Model::CreateIndexBuffer()
 
     m_IndexBuffer = new Buffer{ m_pDevice, m_pCommandPool, indexBufferInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT };
     m_IndexBuffer->CopyBuffer(stagingBuffer.GetBuffer(), bufferSize);
+}
+
+glm::mat4 gp2::Model::ToGlmMat(const aiMatrix4x4& mat)
+{
+    // Thank u Kobe
+    return glm::mat4(
+        mat.a1, mat.b1, mat.c1, mat.d1,
+        mat.a2, mat.b2, mat.c2, mat.d2,
+        mat.a3, mat.b3, mat.c3, mat.d3,
+        mat.a4, mat.b4, mat.c4, mat.d4
+    );
 }

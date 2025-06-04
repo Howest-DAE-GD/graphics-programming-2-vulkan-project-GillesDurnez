@@ -56,7 +56,10 @@ void gp2::Scene::ProcessNode(Device* pDevice, CommandPool* pCommandPool, const a
 	for (unsigned int i = 0; i < node->mNumMeshes; i++) 
 	{
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		Model* newModel = new Model{ pDevice, pCommandPool, mesh };
+
+		aiMatrix4x4 transformation = scene->mRootNode->mTransformation;
+		
+		Model* newModel = new Model{ pDevice, pCommandPool, mesh, transformation };
 		m_Models.push_back(newModel);
 
 		aiString texturePath;
