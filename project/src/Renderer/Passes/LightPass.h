@@ -13,7 +13,7 @@ namespace gp2
 	class LightPass
 	{
 	public:
-		LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, Image* pDepthImage, VkSampler sampler);
+		LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, GBuffer* pGBuffer,  Image* pDepthImage, VkSampler sampler);
 
 		LightPass(const LightPass& other) = delete;
 		LightPass(LightPass&& other) noexcept = delete;
@@ -34,20 +34,18 @@ namespace gp2
 		void CreateUniformBuffers();
 		Pipeline::PipelineConfig& CreatePipeLineConfig(Image* pDepthImage);
 
-		void CreateGBuffer();
-
 		Device* m_pDevice;
 		CommandPool* m_pCommandPool;
 		SwapChain* m_pSwapChain;
 
 		VkSampler m_TextureSampler;
 
-		GBuffer m_GBuffer;
+		GBuffer* m_pGBuffer{};
+		Image* m_pDepthImage{};
 
 		DescriptorPool m_DescriptorPool{ m_pDevice, CreateDescriptorSetLayout() };
 
-		std::vector<VkDescriptorSet> m_UBODescriptorSets{};
-		VkDescriptorSet m_TextureDescriptorSet{};
+		VkDescriptorSet m_GBufferDescriptorSet{};
 
 		std::vector<Buffer> m_UniformBuffers;
 

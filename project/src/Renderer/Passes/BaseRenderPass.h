@@ -40,6 +40,8 @@ namespace gp2
 
 		void Update(Camera* pCamera, uint32_t currentImage) const;
 
+		GBuffer* GetGBuffer() const { return m_GBuffer; }
+
 	private:
 		std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayout() const;
 		VkDescriptorPool CreateDescriptorPool() const;

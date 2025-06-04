@@ -6,6 +6,7 @@
 #include "Instance.h"
 #include "vk_mem_alloc.h"
 #include "Window.h"
+#include "glm/vec4.hpp"
 
 namespace gp2
 {
@@ -45,6 +46,38 @@ namespace gp2
 				}
 #endif
 			}
+
+			void BeginLabel(const VkCommandBuffer& commandBuffer, const std::string& labelName, const glm::vec4& color) const
+			{
+				VkDebugUtilsLabelEXT labelInfo{};
+				labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				labelInfo.pLabelName = labelName.c_str();
+				labelInfo.color[0] = color.r;
+				labelInfo.color[1] = color.g;
+				labelInfo.color[2] = color.b;
+				labelInfo.color[3] = color.a;
+
+				vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &labelInfo);
+			}
+
+			void EndLabel(const VkCommandBuffer& commandBuffer) const
+			{
+				vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+			}
+
+			void InsertLabel(const VkCommandBuffer& commandBuffer, const std::string& labelName, const glm::vec4& color)
+			{
+				VkDebugUtilsLabelEXT labelInfo{};
+				labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
+				labelInfo.pLabelName = labelName.c_str();
+				labelInfo.color[0] = color.r;
+				labelInfo.color[1] = color.g;
+				labelInfo.color[2] = color.b;
+				labelInfo.color[3] = color.a;
+
+				vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &labelInfo);
+			}
+
 
 		private:
 			VkDevice m_pDevice;

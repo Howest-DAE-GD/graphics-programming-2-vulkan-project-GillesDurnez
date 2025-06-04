@@ -23,8 +23,12 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
 {
 
     depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
-    m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    //m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
+
+    m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->normal.GetFormat(), m_GBuffer->normal.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->metalnessAndRoughness.GetFormat(), m_GBuffer->metalnessAndRoughness.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     //m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
     //m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -127,7 +131,11 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
     }
     vkCmdEndRendering(commandBuffer);
 
-    m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+    //m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+    //m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+    //m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+
+    //m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
 }
 
 void gp2::BaseRenderPass::Update(Camera* pCamera, uint32_t currentImage) const
@@ -404,14 +412,14 @@ void gp2::BaseRenderPass::CreateUniformBuffers()
 gp2::Pipeline::PipelineConfig& gp2::BaseRenderPass::CreatePipeLineConfig(Image* pDepthImage)
 {
 
-    auto commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
+    //auto commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
 
-    m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
-    m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    //m_GBuffer->diffuse.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    //m_GBuffer->normal.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
+    //m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 
-    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
+    //m_pCommandPool->EndSingleTimeCommands(commandBuffer);
 
 
     // Depth

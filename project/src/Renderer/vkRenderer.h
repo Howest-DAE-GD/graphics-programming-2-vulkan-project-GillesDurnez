@@ -17,6 +17,7 @@
 #include "Camera.h"
 #include "DepthPrePass.h"
 #include "DescriptorPool.h"
+#include "LightPass.h"
 
 namespace gp2
 {
@@ -26,7 +27,7 @@ namespace gp2
 	public:
 		VkRenderer();
         ~VkRenderer();
-		void UpdateAllTextureDescriptors();
+		//void UpdateAllTextureDescriptors();
 
         void Update();
 		void RenderFrame();
@@ -61,6 +62,7 @@ namespace gp2
 
         DepthPrePass m_DepthPrePass{ &m_Device, &m_CommandPool, &m_SwapChain };
         BaseRenderPass m_BaseRenderPass{ &m_Device, &m_CommandPool, &m_SwapChain, m_DepthPrePass.GetDepthImage() ,m_TextureSampler };
+		LightPass m_LightPass{ &m_Device, &m_CommandPool, &m_SwapChain, m_BaseRenderPass.GetGBuffer(), m_DepthPrePass.GetDepthImage(), m_TextureSampler };
 
 		Scene m_Scene{};
 		Camera m_Camera{ &m_Window,  m_SwapChain.GetSwapChainExtent().width / static_cast<float>(m_SwapChain.GetSwapChainExtent().height),{ 0.f, 0.f, 0.f }, 45.f, .1f, 10000.f };
