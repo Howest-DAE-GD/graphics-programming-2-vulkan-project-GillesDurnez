@@ -14,7 +14,7 @@ namespace gp2
 	public:
 		Texture() = default;
 
-		Texture(Device* pDevice, CommandPool* pCommandPool, std::string path);
+		Texture(Device* pDevice, CommandPool* pCommandPool, std::string path, VkFormat imageFormat = VK_FORMAT_R8G8B8A8_SRGB);
 		~Texture();
 
 		Texture(const Texture&) = delete;

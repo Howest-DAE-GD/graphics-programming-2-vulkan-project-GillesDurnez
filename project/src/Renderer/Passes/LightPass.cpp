@@ -18,6 +18,7 @@ gp2::LightPass::~LightPass() = default;
 
 void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage) const
 {
+    m_pDevice->GetDebugger().BeginLabel(commandBuffer, "Light Pass", { 0,1,1,1 });
 
     //depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
     targetImage->TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -117,6 +118,7 @@ void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_
     //m_pGBuffer->normal.TransitionImageLayout(commandBuffer, m_pGBuffer->diffuse.GetFormat(), m_pGBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_2_SHADER_READ_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_NONE);
     //m_pGBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_pGBuffer->diffuse.GetFormat(), m_pGBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_2_SHADER_READ_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_2_NONE);
 
+    m_pDevice->GetDebugger().EndLabel(commandBuffer);
 }
 
 void gp2::LightPass::Update(Camera* pCamera, uint32_t currentImage) const

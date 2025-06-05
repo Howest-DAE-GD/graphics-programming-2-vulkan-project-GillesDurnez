@@ -21,6 +21,7 @@ gp2::BaseRenderPass::~BaseRenderPass()
 
 void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage)
 {
+    m_pDevice->GetDebugger().BeginLabel(commandBuffer, "GBuffer Sample pass", { 1,0,0,1 });
 
     depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     //m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
@@ -127,6 +128,7 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
     //m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
 
     //m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+    m_pDevice->GetDebugger().EndLabel(commandBuffer);
 }
 
 void gp2::BaseRenderPass::Update(Camera* pCamera, uint32_t currentImage) const
@@ -490,14 +492,14 @@ gp2::GBuffer* gp2::BaseRenderPass::CreateGBuffer()
     normalCreateInfo.extent.depth = 1;
     normalCreateInfo.mipLevels = 1;
     normalCreateInfo.arrayLayers = 1;
-    normalCreateInfo.format = VK_FORMAT_R32G32B32A32_SFLOAT;
+    normalCreateInfo.format = VK_FORMAT_R8G8B8A8_UNORM;
     normalCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
     normalCreateInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     normalCreateInfo.usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     normalCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     normalCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 
-    gBuffer->normal = Image{ m_pDevice, m_pCommandPool, normalCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT };
+    gBuffer->normal = Image{ m_pDevice, m_pCommandPool, normalCreateInfo, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT };
     m_pDevice->GetDebugger().SetDebugName(reinterpret_cast<uint64_t>(gBuffer->normal.GetImage()), "GB Normal Image ", VK_OBJECT_TYPE_IMAGE);
 
     // Metalness / Roughness

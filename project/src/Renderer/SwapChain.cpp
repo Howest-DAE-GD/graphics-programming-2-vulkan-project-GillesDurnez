@@ -10,8 +10,6 @@ gp2::SwapChain::SwapChain(Window* window, Device* device, CommandPool* pCommandP
 	: m_pWindow(window), m_pDevice(device), m_pCommandPool(pCommandPool)
 {
     CreateSwapChain();
-	//CreateImageViews();
-    //CreateDepthResources();
 }
 
 gp2::SwapChain::~SwapChain()
@@ -28,20 +26,12 @@ void gp2::SwapChain::CreateSwapChain()
     VkPresentModeKHR presentMode = ChooseSwapPresentMode(swapChainSupport.presentModes);
     VkExtent2D extent = ChooseSwapExtent(swapChainSupport.capabilities);
 
-    // Should not do plus one, change later.
-    //uint32_t imageCount = swapChainSupport.capabilities.minImageCount;
     const uint32_t desiredImageCount = 2;
     uint32_t imageCount{};
     if (swapChainSupport.capabilities.maxImageCount > 0)
         imageCount = desiredImageCount;
     else
         imageCount = std::clamp(desiredImageCount, swapChainSupport.capabilities.minImageCount, swapChainSupport.capabilities.maxImageCount);
-
-    /*uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-    if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount)
-    {
-        imageCount = swapChainSupport.capabilities.maxImageCount;
-    }*/
 
     VkSwapchainCreateInfoKHR createInfo{};
     createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -96,16 +86,6 @@ void gp2::SwapChain::CreateSwapChain()
     m_SwapChainImageFormat = surfaceFormat.format;
     m_SwapChainExtent = extent;
 }
-//
-//void gp2::SwapChain::CreateImageViews()
-//{
-//    m_SwapChainImageViews.resize(m_SwapChainImages.size());
-//
-//    for (uint32_t i = 0; i < m_SwapChainImages.size(); i++)
-//    {
-//        m_SwapChainImages[i] = CreateImageView(m_SwapChainImages[i].GetImage(), m_SwapChainImageFormat, VK_IMAGE_ASPECT_COLOR_BIT);
-//    }
-//}
 
 VkSurfaceFormatKHR gp2::SwapChain::ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
@@ -157,70 +137,8 @@ VkExtent2D gp2::SwapChain::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capa
     }
 }
 
-//VkImageView gp2::SwapChain::CreateImageView(VkImage image, VkFormat format, VkImageAspectFlags aspectFlags) const
-//{
-//    VkImageViewCreateInfo viewInfo{};
-//    viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-//    viewInfo.image = image;
-//    viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-//    viewInfo.format = format;
-//    viewInfo.subresourceRange.aspectMask = aspectFlags;
-//    viewInfo.subresourceRange.baseMipLevel = 0;
-//    viewInfo.subresourceRange.levelCount = 1;
-//    viewInfo.subresourceRange.baseArrayLayer = 0;
-//    viewInfo.subresourceRange.layerCount = 1;
-//
-//    VkImageView imageView;
-//    if (vkCreateImageView(m_pDevice->GetLogicalDevice(), &viewInfo, nullptr, &imageView) != VK_SUCCESS)
-//    {
-//        throw std::runtime_error("failed to create texture image view!");
-//    }
-//
-//    return imageView;
-//}
-
-//void gp2::SwapChain::CreateDepthResources()
-//{
-//    VkFormat depthFormat = FindDepthFormat();
-//
-//
-//	gp2::Image::ImageCreateInfo depthImageCreateInfo{};
-//
-//	depthImageCreateInfo.width = m_SwapChainExtent.width;
-//	depthImageCreateInfo.height = m_SwapChainExtent.height;
-//	depthImageCreateInfo.format = depthFormat;
-//	depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-//	depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-//	depthImageCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
-//	depthImageCreateInfo.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-//
-//    if (m_pDepthImage != nullptr) 
-//    {
-//        delete m_pDepthImage;
-//		m_pDepthImage = nullptr;
-//    }
-//
-//	m_pDepthImage = new Image{ m_pDevice, m_pCommandPool, depthImageCreateInfo };
-//
-//	VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
-//
-//    m_pDepthImage->TransitionImageLayout(commandBuffer, depthFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-//    m_pCommandPool->EndSingleTimeCommands(commandBuffer);
-//
-//    vmaSetAllocationName(m_pDevice->GetAllocator(), m_pDepthImage->GetImageAllocation(), "Swapchain depth image Buffer");
-//
-//}
-
 void gp2::SwapChain::CleanupSwapChain()
 {
-    //delete m_pDepthImage;
-    //m_pDepthImage = nullptr;
-
-    /*for (size_t i = 0; i < m_SwapChainImages.size(); i++)
-    {
-        vkDestroyImageView(m_pDevice->GetLogicalDevice(), m_SwapChainImages[i].GetImageView(), nullptr);
-    }*/
-
     vkDestroySwapchainKHR(m_pDevice->GetLogicalDevice(), m_SwapChain, nullptr);
 }
 
@@ -242,10 +160,4 @@ void gp2::SwapChain::RecreateSwapChain()
     CleanupSwapChain();
 
     CreateSwapChain();
-  //  for (auto& image : m_SwapChainImages)
-  //  {
-		//image.RecreateImageView();
-  //  }
-    //CreateImageViews();
-    //CreateDepthResources();
 }

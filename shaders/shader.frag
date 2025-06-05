@@ -6,11 +6,15 @@ const uint UINT32_MAX = 0xFFFFFFFFu;
 
 layout(set = 1, binding = 1) uniform sampler2D textures[];
 
-layout(location = 0) in vec2 fragTexCoord;
+layout(location = 0) in vec4 fragPosition;
+layout(location = 1) in vec3 fragNormal;
+layout(location = 2) in vec3 fragTangent;
+layout(location = 3) in vec2 fragTexCoord;
 
 layout(location = 0) out vec4 outAlbedo;
 layout(location = 1) out vec4 outNormal;
 layout(location = 2) out vec2 outMR;
+
 
 layout(push_constant) uniform PushConstants {
     uint textureIndex;
@@ -41,7 +45,7 @@ void main()
     }
     else
     {
-        normal = texture(textures[pc.normalIndex],   fragTexCoord).xyz * 2.0 - 1.0;
+        normal = textureLod(textures[pc.normalIndex],   fragTexCoord, 1.f).xyz * 2.0 - 1.0;
     }
 
     if (pc.metalnessIndex == UINT32_MAX)
@@ -62,7 +66,15 @@ void main()
         roughness = texture(textures[pc.roughnessIndex],fragTexCoord).g;
     }
 
+    vec3 T = normalize(fragTangent);
+    vec3 B = normalize(cross(normalize(fragNormal), T));
+    vec3 N = normalize(fragNormal);
+
+    mat3 TBN = mat3(T, B, N);
+
+    vec3 mN = TBN * normal;
+
     outAlbedo = albedo;
-    outNormal = vec4(normalize(normal) * 0.5 + 0.5, 1.0);
+    outNormal = vec4(normalize(mN) * 0.5 + 0.5, 1.0);
     outMR     = vec2(metalness, roughness);
 }

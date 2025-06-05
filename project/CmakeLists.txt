@@ -192,6 +192,7 @@ ExternalProject_Add(SponzaScene
             ${CMAKE_BINARY_DIR}/SponzaScene-src/Models/Sponza/glTF
             ${SCENE_DIR}
         COMMAND ${CMAKE_COMMAND} -E remove ${SPONZA_ZIP}
+#        COMMAND ${CMAKE_COMMAND} -E remove_directory ${CMAKE_BINARY_DIR}/SponzaScene-src
     UPDATE_COMMAND ""
     LOG_DOWNLOAD ON
 )

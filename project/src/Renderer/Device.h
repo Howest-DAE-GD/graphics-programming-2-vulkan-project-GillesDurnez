@@ -47,7 +47,7 @@ namespace gp2
 #endif
 			}
 
-			void BeginLabel(const VkCommandBuffer& commandBuffer, const std::string& labelName, const glm::vec4& color) const
+			void BeginLabel(VkCommandBuffer commandBuffer, const std::string& labelName, const glm::vec4& color) const
 			{
 				VkDebugUtilsLabelEXT labelInfo{};
 				labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -60,12 +60,12 @@ namespace gp2
 				vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &labelInfo);
 			}
 
-			void EndLabel(const VkCommandBuffer& commandBuffer) const
+			void EndLabel(VkCommandBuffer commandBuffer) const
 			{
 				vkCmdEndDebugUtilsLabelEXT(commandBuffer);
 			}
 
-			void InsertLabel(const VkCommandBuffer& commandBuffer, const std::string& labelName, const glm::vec4& color)
+			void InsertLabel(VkCommandBuffer commandBuffer, const std::string& labelName, const glm::vec4& color) const
 			{
 				VkDebugUtilsLabelEXT labelInfo{};
 				labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
@@ -82,6 +82,9 @@ namespace gp2
 		private:
 			VkDevice m_pDevice;
 			PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXT = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>( vkGetDeviceProcAddr(m_pDevice, "vkSetDebugUtilsObjectNameEXT")	);
+			PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(vkGetDeviceProcAddr(m_pDevice, "vkCmdBeginDebugUtilsLabelEXT"));
+			PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(m_pDevice, "vkCmdEndDebugUtilsLabelEXT"));
+			PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXT = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(vkGetDeviceProcAddr(m_pDevice, "vkCmdInsertDebugUtilsLabelEXT"));
 		};
 
 		struct SwapChainSupportDetails

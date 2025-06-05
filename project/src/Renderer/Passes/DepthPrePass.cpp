@@ -67,7 +67,7 @@ void gp2::DepthPrePass::CreateDescriptorSets(Scene* pScene)
 
 void gp2::DepthPrePass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene) const
 {
-
+	m_pDevice->GetDebugger().BeginLabel(commandBuffer, "Depth Pre-Pass", {0,0,0,1});
     m_pDepthImage->TransitionImageLayout(commandBuffer, m_pDepthImage->GetFormat(), m_pDepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
@@ -122,6 +122,7 @@ void gp2::DepthPrePass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint
     vkCmdEndRendering(commandBuffer);
 
     m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_NONE);
+	m_pDevice->GetDebugger().EndLabel(commandBuffer);
 }
 
 void gp2::DepthPrePass::Update(Camera* pCamera, uint32_t currentImage) const

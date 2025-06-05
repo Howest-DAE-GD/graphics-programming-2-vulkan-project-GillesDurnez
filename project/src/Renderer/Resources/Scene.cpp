@@ -100,7 +100,7 @@ void gp2::Scene::ProcessNode(Device* pDevice, CommandPool* pCommandPool, const a
 			}
 			else
 			{
-				m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, relativeNormalMapPath });
+				m_Textures.emplace_back(new Texture{ pDevice, pCommandPool, relativeNormalMapPath, VK_FORMAT_R8G8B8A8_UNORM });
 				m_LoadedTextures.insert(std::pair<std::string, uint32_t>(relativeNormalMapPath, m_Textures.size() - 1));
 				newModel->AddNormalMap(m_LoadedTextures[relativeNormalMapPath]);
 

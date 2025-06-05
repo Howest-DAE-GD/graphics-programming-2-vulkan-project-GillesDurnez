@@ -24,23 +24,12 @@ namespace gp2
 		const VkFormat& GetImageFormat() const { return m_SwapChainImageFormat; }
 		std::vector<Image>& GetImages() { return m_SwapChainImages; }
 		
-		//Image* GetDepthImage() const { return m_pDepthImage; }
-
 		void RecreateSwapChain();
 		
-		struct UniformBufferObject
-		{
-			alignas(16) glm::mat4 model;
-			alignas(16) glm::mat4 view;
-			alignas(16) glm::mat4 proj;
-		};
-
 		static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
 	private:
 		void CreateSwapChain();
-		//void CreateImageViews();
-		//void CreateDepthResources();
 
 		void CleanupSwapChain();
 
@@ -56,8 +45,6 @@ namespace gp2
 		std::vector<Image>			m_SwapChainImages{};
 		VkFormat					m_SwapChainImageFormat{};
 		VkExtent2D					m_SwapChainExtent{};
-
-		//Image* m_pDepthImage{};
 
 	};
 }

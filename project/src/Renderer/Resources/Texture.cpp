@@ -9,7 +9,7 @@
 #include "stb_image.h"
 
 
-gp2::Texture::Texture(Device* pDevice, CommandPool* pCommandPool, std::string path)
+gp2::Texture::Texture(Device* pDevice, CommandPool* pCommandPool, std::string path, VkFormat imageFormat)
 	: m_pDevice(pDevice), m_pCommandPool(pCommandPool)
 {
     int texWidth, texHeight, texChannels;
@@ -29,12 +29,12 @@ gp2::Texture::Texture(Device* pDevice, CommandPool* pCommandPool, std::string pa
 
     vmaCopyMemoryToAllocation(m_pDevice->GetAllocator(), pixels, stagingBuffer.GetBufferAllocation(), 0, imageSize);
 
-	m_TextureImage = new Image{ m_pDevice, m_pCommandPool, static_cast<unsigned int>(texWidth), static_cast<unsigned int>(texHeight), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT };
+	m_TextureImage = new Image{ m_pDevice, m_pCommandPool, static_cast<unsigned int>(texWidth), static_cast<unsigned int>(texHeight), imageFormat, VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, VK_IMAGE_ASPECT_COLOR_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT };
 	vmaSetAllocationName(m_pDevice->GetAllocator(), m_TextureImage->GetImageAllocation(), "Texture image Buffer");
 	
 	VkCommandBuffer commandBuffer = m_pCommandPool->BeginSingleTimeCommands();
 	m_TextureImage->TransitionImageLayout(commandBuffer,
-		VK_FORMAT_R8G8B8A8_SRGB,
+		imageFormat,
 		VK_IMAGE_LAYOUT_UNDEFINED,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
 	);
@@ -44,7 +44,7 @@ gp2::Texture::Texture(Device* pDevice, CommandPool* pCommandPool, std::string pa
 
 	m_TextureImage->CopyBufferToImage(stagingBuffer.GetBuffer(), texWidth, texHeight);
 	m_TextureImage->TransitionImageLayout( commandBuffer,
-		VK_FORMAT_R8G8B8A8_SRGB,
+		imageFormat,
 		VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
 	);
