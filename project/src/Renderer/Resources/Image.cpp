@@ -148,7 +148,7 @@ void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat 
 }
 
 void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,
-	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage)
+	VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags imageAspectFlags)
 {
 
 	m_ImageLayout = newLayout;
@@ -160,7 +160,7 @@ void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat 
     barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
     barrier.image = m_Image;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.aspectMask = imageAspectFlags;
     barrier.subresourceRange.baseMipLevel = 0;
     barrier.subresourceRange.levelCount = 1;
     barrier.subresourceRange.baseArrayLayer = 0;
@@ -178,10 +178,7 @@ void gp2::Image::TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat 
             barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
     }
-    else
-    {
-        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    }
+
 
 
     vkCmdPipelineBarrier(

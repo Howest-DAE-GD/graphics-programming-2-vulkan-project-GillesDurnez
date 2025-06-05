@@ -52,7 +52,7 @@ namespace gp2
 
 		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout newLayout);
 		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
-		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage);
+		void TransitionImageLayout(VkCommandBuffer& commandBuffer, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout,VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask, VkPipelineStageFlags sourceStage, VkPipelineStageFlags destinationStage, VkImageAspectFlags imageAspectFlags = VK_IMAGE_ASPECT_COLOR_BIT);
 
 		void CopyBufferToImage(VkBuffer buffer, uint32_t width, uint32_t height) const;
 		void CreateImageView(VkFormat format, VkImageAspectFlags aspectFlags);

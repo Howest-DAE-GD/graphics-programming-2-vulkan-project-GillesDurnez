@@ -68,7 +68,7 @@ void gp2::DepthPrePass::CreateDescriptorSets(Scene* pScene)
 void gp2::DepthPrePass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene) const
 {
 
-    m_pDepthImage->TransitionImageLayout(commandBuffer, m_pDepthImage->GetFormat(), m_pDepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
+    m_pDepthImage->TransitionImageLayout(commandBuffer, m_pDepthImage->GetFormat(), m_pDepthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     VkRenderingAttachmentInfo depthAttachment = {};
@@ -282,7 +282,7 @@ gp2::Image* gp2::DepthPrePass::ReCreateDepthResource()
 	depthImageCreateInfo.height = m_pSwapChain->GetSwapChainExtent().height;
 	depthImageCreateInfo.format = depthFormat;
 	depthImageCreateInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	depthImageCreateInfo.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 	depthImageCreateInfo.aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
 	depthImageCreateInfo.properties = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
 

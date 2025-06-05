@@ -22,7 +22,7 @@ gp2::BaseRenderPass::~BaseRenderPass()
 void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_t imageIndex, Scene* pScene, Image* depthImage, Image* targetImage)
 {
 
-    depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT);
+    depthImage->TransitionImageLayout(commandBuffer, depthImage->GetFormat(), depthImage->GetImageLayout(), VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT, VK_IMAGE_ASPECT_DEPTH_BIT);
     //m_pSwapChain->GetImages()[imageIndex].TransitionImageLayout(commandBuffer, m_pSwapChain->GetImageFormat(), m_pSwapChain->GetImages()[imageIndex].GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 
@@ -35,15 +35,6 @@ void gp2::BaseRenderPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, ui
     //m_GBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_GBuffer->diffuse.GetFormat(), m_GBuffer->diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_ACCESS_2_NONE, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_PIPELINE_STAGE_2_NONE, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT);
 
     std::vector<VkRenderingAttachmentInfo> colorAttachments{};
-
-    //VkRenderingAttachmentInfo colorAttachment = {};
-    //colorAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-    //colorAttachment.imageView = targetImage->GetImageView();
-    //colorAttachment.imageLayout = targetImage->GetImageLayout();
-    //colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-    //colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-    //colorAttachment.clearValue.color = { {0.0f, 0.0f, 0.0f, 1.0f} };
-    //colorAttachments.push_back(colorAttachment);
 
     VkRenderingAttachmentInfo depthAttachment = {};
     depthAttachment.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
@@ -144,6 +135,7 @@ void gp2::BaseRenderPass::Update(Camera* pCamera, uint32_t currentImage) const
     ubo.model = glm::mat4(1.0f);
     ubo.view = pCamera->viewMatrix;
     ubo.proj = pCamera->projectionMatrix;
+	ubo.cameraPos = glm::vec4(pCamera->origin, 1.0f);
     m_UniformBuffers[currentImage].CopyMemory(&ubo, sizeof(ubo), 0);
 }
 

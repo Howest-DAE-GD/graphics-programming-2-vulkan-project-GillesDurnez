@@ -13,6 +13,7 @@ namespace gp2
 		alignas(16) glm::mat4 model;
 		alignas(16) glm::mat4 view;
 		alignas(16) glm::mat4 proj;
+		alignas(16) glm::vec4 cameraPos;
 	};
 
 	struct GBuffer
@@ -43,6 +44,9 @@ namespace gp2
 		void RecreateGBuffer();
 
 		GBuffer* GetGBuffer() const { return m_GBuffer; }
+		const std::vector<Buffer>& GetUBOs() const { return m_UniformBuffers; }
+
+
 
 	private:
 		std::vector<VkDescriptorSetLayout> CreateDescriptorSetLayout() const;

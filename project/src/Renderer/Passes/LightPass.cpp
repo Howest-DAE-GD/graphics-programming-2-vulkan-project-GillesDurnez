@@ -2,14 +2,14 @@
 
 #include <array>
 
-gp2::LightPass::LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, BaseRenderPass* pGBuffer, Image* pDepthImage, VkSampler sampler)
+gp2::LightPass::LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, BaseRenderPass* pGBuffer, DepthPrePass* pDepthPrePass, VkSampler sampler)
     : m_pDevice(pDevice)
     , m_pCommandPool(pCommandPool)
     , m_pSwapChain(pSwapChain)
     , m_TextureSampler(sampler)
 	, m_pBaseRenderPass(pGBuffer)
-	, m_pDepthImage(pDepthImage)
-    , m_Pipeline({ m_pDevice, m_pSwapChain, &m_DescriptorPool, CreatePipeLineConfig(pDepthImage) , "shaders/lightPass_vert.spv", "shaders/lightPass_frag.spv" })
+	, m_pDepthPrePass(pDepthPrePass)
+    , m_Pipeline({ m_pDevice, m_pSwapChain, &m_DescriptorPool, CreatePipeLineConfig(pDepthPrePass->GetDepthImage()) , "shaders/lightPass_vert.spv", "shaders/lightPass_frag.spv" })
 {
     m_DescriptorPool.SetDescriptorSetPool(CreateDescriptorPool());
 }
@@ -27,6 +27,17 @@ void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_
     m_pGBuffer->normal.TransitionImageLayout(commandBuffer, m_pGBuffer->normal.GetFormat(), m_pGBuffer->normal.GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
     m_pGBuffer->metalnessAndRoughness.TransitionImageLayout(commandBuffer, m_pGBuffer->metalnessAndRoughness.GetFormat(), m_pGBuffer->metalnessAndRoughness.GetImageLayout(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_2_SHADER_READ_BIT, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT);
 
+    m_pDepthPrePass->GetDepthImage()->TransitionImageLayout(
+        commandBuffer,
+        m_pDepthPrePass->GetDepthImage()->GetFormat(),
+        m_pDepthPrePass->GetDepthImage()->GetImageLayout(),
+        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+        VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+        VK_ACCESS_2_SHADER_READ_BIT,
+        VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT,
+        VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT,
+        VK_IMAGE_ASPECT_DEPTH_BIT
+    );
     //m_pGBuffer.diffuse.TransitionImageLayout(commandBuffer, m_pGBuffer.diffuse.GetFormat(), m_pGBuffer.diffuse.GetImageLayout(), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, )
 
     std::vector<VkRenderingAttachmentInfo> colorAttachments{};
@@ -91,11 +102,11 @@ void gp2::LightPass::RecordCommandBuffer(VkCommandBuffer& commandBuffer, uint32_
 
 
         VkDeviceSize offsets[] = { 0 };
-        std::vector<VkDescriptorSet> dSets = { m_GBufferDescriptorSet };
+        std::vector<VkDescriptorSet> dSets = { m_GBufferDescriptorSet, m_UBODescriptorSets[imageIndex] };
 
 
 
-        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, 1, dSets.data(), 0, nullptr);
+        vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_Pipeline.GetPipelineLayout(), 0, dSets.size(), dSets.data(), 0, nullptr);
         vkCmdDraw(commandBuffer, 3, 1, 0, 0);
     }
     vkCmdEndRendering(commandBuffer);
@@ -115,16 +126,17 @@ void gp2::LightPass::Update(Camera* pCamera, uint32_t currentImage) const
 
 void gp2::LightPass::RebindGbufferDescriptors()
 {
-    std::array<VkWriteDescriptorSet, 3> writes{};
-    std::array<VkDescriptorImageInfo, 3> imageInfos{};
+    std::array<VkWriteDescriptorSet, 4> writes{};
+    std::array<VkDescriptorImageInfo, 4> imageInfos{};
 
     GBuffer* m_pGBuffer = m_pBaseRenderPass->GetGBuffer();
 
     imageInfos[0] = { m_TextureSampler, m_pGBuffer->diffuse.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     imageInfos[1] = { m_TextureSampler, m_pGBuffer->normal.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
     imageInfos[2] = { m_TextureSampler, m_pGBuffer->metalnessAndRoughness.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+	imageInfos[3] = { m_TextureSampler, m_pDepthPrePass->GetDepthImage()->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < 4; ++i)
     {
         writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         writes[i].dstSet = m_GBufferDescriptorSet;
@@ -171,10 +183,33 @@ std::vector<VkDescriptorSetLayout> gp2::LightPass::CreateDescriptorSetLayout() c
         .pImmutableSamplers = nullptr
     });
 
+    //-- Depth Image ---------------------------------------------------------------------
+    gBuffer.bindings.push_back(VkDescriptorSetLayoutBinding{
+    .binding = 3,
+    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+    .descriptorCount = 1,
+    .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+    .pImmutableSamplers = nullptr
+        });
+
     gBuffer.info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
     gBuffer.info.bindingCount = static_cast<uint32_t>(gBuffer.bindings.size());
     gBuffer.info.pBindings = gBuffer.bindings.data();
     layouts.push_back(std::move(gBuffer));
+
+    DescriptorPool::DescriptorSetLayoutData ubo{};
+    ubo.bindings = { VkDescriptorSetLayoutBinding{
+        .binding = 0,
+        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+        .descriptorCount = 1,
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT | VK_SHADER_STAGE_VERTEX_BIT,
+        .pImmutableSamplers = nullptr } };
+
+    ubo.info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    ubo.info.bindingCount = static_cast<uint32_t>(ubo.bindings.size());
+    ubo.info.pBindings = ubo.bindings.data();
+    layouts.push_back(std::move(ubo));
+
 
     // --- Create the Layouts ---------------------------------------------------
     std::vector<VkDescriptorSetLayout> descriptorSetLayouts;
@@ -197,9 +232,12 @@ std::vector<VkDescriptorSetLayout> gp2::LightPass::CreateDescriptorSetLayout() c
 
 VkDescriptorPool gp2::LightPass::CreateDescriptorPool() const
 {
-    std::array<VkDescriptorPoolSize, 1> poolSizes{};
+    std::array<VkDescriptorPoolSize, 2> poolSizes{};
     poolSizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    poolSizes[0].descriptorCount = 3;
+    poolSizes[0].descriptorCount = 4;
+
+    poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    poolSizes[1].descriptorCount = static_cast<uint32_t>(SwapChain::MAX_FRAMES_IN_FLIGHT);
 
     VkDescriptorPoolCreateInfo poolInfo{};
     poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -207,7 +245,7 @@ VkDescriptorPool gp2::LightPass::CreateDescriptorPool() const
     poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
     poolInfo.pPoolSizes = poolSizes.data();
 
-    poolInfo.maxSets = 1;
+    poolInfo.maxSets = SwapChain::MAX_FRAMES_IN_FLIGHT + 1;
     VkDescriptorPool pool;
     if (vkCreateDescriptorPool(
         m_pDevice->GetLogicalDevice(),
@@ -221,55 +259,89 @@ VkDescriptorPool gp2::LightPass::CreateDescriptorPool() const
     return pool;
 }
 
-void gp2::LightPass::CreateDescriptorSets(Scene* pScene)
+void gp2::LightPass::CreateDescriptorSets(Scene* /*pScene*/)
 {
-   
-    VkDescriptorSetLayout texLayout = m_DescriptorPool.GetDescriptorSetLayout(0);
-    uint32_t capacity = 1;
+    VkDescriptorSetLayout gbLayout = m_DescriptorPool.GetDescriptorSetLayout(0);
+    VkDescriptorSetAllocateInfo allocGB{};
+    allocGB.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocGB.descriptorPool = m_DescriptorPool.GetDescriptorPool();
+    allocGB.descriptorSetCount = 1;
+    allocGB.pSetLayouts = &gbLayout;
 
-    VkDescriptorSetVariableDescriptorCountAllocateInfo countInfo{};
-    countInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
-    countInfo.descriptorSetCount = 1;
-    countInfo.pDescriptorCounts = &capacity;
-
-    VkDescriptorSetAllocateInfo allocTex{};
-    allocTex.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    allocTex.pNext = &countInfo;
-    allocTex.descriptorPool = m_DescriptorPool.GetDescriptorPool();
-    allocTex.descriptorSetCount = 1;
-    allocTex.pSetLayouts = &texLayout;
-
-    auto res = vkAllocateDescriptorSets(
+    if (vkAllocateDescriptorSets(
         m_pDevice->GetLogicalDevice(),
-        &allocTex,
-        &m_GBufferDescriptorSet);
-    if (res != VK_SUCCESS)
+        &allocGB,
+        &m_GBufferDescriptorSet) != VK_SUCCESS)
     {
-        throw std::runtime_error("failed to allocate bindless descriptor set!");
+        throw std::runtime_error("failed to allocate G-Buffer descriptor set!");
     }
 
-    std::array<VkWriteDescriptorSet, 3> writes{};
-	std::array<VkDescriptorImageInfo, 3> imageInfos{};
+    std::array<VkWriteDescriptorSet, 4> writes{};
+    std::array<VkDescriptorImageInfo, 4> imageInfos{};
 
     GBuffer* m_pGBuffer = m_pBaseRenderPass->GetGBuffer();
 
 	imageInfos[0] = { m_TextureSampler, m_pGBuffer->diffuse.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	imageInfos[1] = { m_TextureSampler, m_pGBuffer->normal.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 	imageInfos[2] = { m_TextureSampler, m_pGBuffer->metalnessAndRoughness.GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
+	imageInfos[3] = { m_TextureSampler, m_pDepthPrePass->GetDepthImage()->GetImageView(), VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL };
 
-	for (int i = 0; i < 3; ++i) 
-	{
-	    writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	    writes[i].dstSet = m_GBufferDescriptorSet;
-	    writes[i].dstBinding = i;
-	    writes[i].dstArrayElement = 0;
-	    writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	    writes[i].descriptorCount = 1;
-	    writes[i].pImageInfo = &imageInfos[i];
-	}
+    for (int i = 0; i < 4; ++i)
+    {
+        writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        writes[i].dstSet = m_GBufferDescriptorSet;
+        writes[i].dstBinding = (uint32_t)i;
+        writes[i].dstArrayElement = 0;
+        writes[i].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        writes[i].descriptorCount = 1;
+        writes[i].pImageInfo = &imageInfos[i];
+    }
+    vkUpdateDescriptorSets(m_pDevice->GetLogicalDevice(),
+        static_cast<uint32_t>(writes.size()),
+        writes.data(),
+        0, nullptr);
 
-	vkUpdateDescriptorSets(m_pDevice->GetLogicalDevice(), writes.size(), writes.data(), 0, nullptr);
+    VkDescriptorSetLayout uboLayout = m_DescriptorPool.GetDescriptorSetLayout(1);
+    m_UBODescriptorSets.resize(SwapChain::MAX_FRAMES_IN_FLIGHT);
+
+    std::vector<VkDescriptorSetLayout> uboLayouts(SwapChain::MAX_FRAMES_IN_FLIGHT, uboLayout);
+    VkDescriptorSetAllocateInfo allocUBO{};
+    allocUBO.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocUBO.descriptorPool = m_DescriptorPool.GetDescriptorPool();
+    allocUBO.descriptorSetCount = static_cast<uint32_t>(uboLayouts.size());
+    allocUBO.pSetLayouts = uboLayouts.data();
+
+    if (vkAllocateDescriptorSets(
+        m_pDevice->GetLogicalDevice(),
+        &allocUBO,
+        m_UBODescriptorSets.data()) != VK_SUCCESS)
+    {
+        throw std::runtime_error("failed to allocate UBO descriptor sets!");
+    }
+
+    for (uint32_t i = 0; i < SwapChain::MAX_FRAMES_IN_FLIGHT; ++i)
+    {
+        VkDescriptorBufferInfo bufferInfo{};
+        bufferInfo.buffer = m_pBaseRenderPass->GetUBOs()[i].GetBuffer();
+        bufferInfo.offset = 0;
+        bufferInfo.range = sizeof(UniformBufferObject);
+
+        VkWriteDescriptorSet write{};
+        write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write.dstSet = m_UBODescriptorSets[i];
+        write.dstBinding = 0; 
+        write.dstArrayElement = 0;
+        write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write.descriptorCount = 1;
+        write.pBufferInfo = &bufferInfo;
+
+        vkUpdateDescriptorSets(
+            m_pDevice->GetLogicalDevice(),
+            1, &write,
+            0, nullptr);
+    }
 }
+
 
 gp2::Pipeline::PipelineConfig& gp2::LightPass::CreatePipeLineConfig(Image* pDepthImage)
 {

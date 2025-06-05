@@ -3,6 +3,7 @@
 
 #include "BaseRenderPass.h"
 #include "Camera.h"
+#include "DepthPrePass.h"
 #include "Image.h"
 #include "Pipeline.h"
 #include "Scene.h"
@@ -13,7 +14,7 @@ namespace gp2
 	class LightPass
 	{
 	public:
-		LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, BaseRenderPass* pBaseRenderPass,  Image* pDepthImage, VkSampler sampler);
+		LightPass(Device* pDevice, CommandPool* pCommandPool, SwapChain* pSwapChain, BaseRenderPass* pBaseRenderPass, DepthPrePass* pDepthPrePass, VkSampler sampler);
 
 		LightPass(const LightPass& other) = delete;
 		LightPass(LightPass&& other) noexcept = delete;
@@ -41,14 +42,15 @@ namespace gp2
 
 		VkSampler m_TextureSampler;
 
+		DepthPrePass* m_pDepthPrePass{};
 		BaseRenderPass* m_pBaseRenderPass{};
-		Image* m_pDepthImage{};
 
 		DescriptorPool m_DescriptorPool{ m_pDevice, CreateDescriptorSetLayout() };
 
 		VkDescriptorSet m_GBufferDescriptorSet{};
+		VkDescriptorSet m_DepthImageSet{};
 
-		std::vector<Buffer> m_UniformBuffers;
+		std::vector<VkDescriptorSet> m_UBODescriptorSets{};
 
 		Pipeline::PipelineConfig m_PipelineConfig{};
 		Pipeline m_Pipeline;
