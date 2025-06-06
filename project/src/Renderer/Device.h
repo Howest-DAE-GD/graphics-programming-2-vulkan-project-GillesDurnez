@@ -49,6 +49,8 @@ namespace gp2
 
 			void BeginLabel(VkCommandBuffer commandBuffer, const std::string& labelName, const glm::vec4& color) const
 			{
+#ifdef _DEBUG
+
 				VkDebugUtilsLabelEXT labelInfo{};
 				labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 				labelInfo.pLabelName = labelName.c_str();
@@ -58,15 +60,21 @@ namespace gp2
 				labelInfo.color[3] = color.a;
 
 				vkCmdBeginDebugUtilsLabelEXT(commandBuffer, &labelInfo);
+#endif
 			}
 
 			void EndLabel(VkCommandBuffer commandBuffer) const
 			{
+#ifdef _DEBUG
+
 				vkCmdEndDebugUtilsLabelEXT(commandBuffer);
+#endif
 			}
 
 			void InsertLabel(VkCommandBuffer commandBuffer, const std::string& labelName, const glm::vec4& color) const
 			{
+#ifdef _DEBUG
+
 				VkDebugUtilsLabelEXT labelInfo{};
 				labelInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 				labelInfo.pLabelName = labelName.c_str();
@@ -76,6 +84,7 @@ namespace gp2
 				labelInfo.color[3] = color.a;
 
 				vkCmdInsertDebugUtilsLabelEXT(commandBuffer, &labelInfo);
+#endif
 			}
 
 
